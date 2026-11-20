@@ -28,7 +28,8 @@ function App(){
  const [characters,setCharacters]=useState<Character[]>([]);
  const [current,setCurrent]=useState<Character|null>(null);
  const [active,setActive]=useState<AppKey>("home");
- const [busy,setBusy]=useState(false);\n const [isAdmin,setIsAdmin]=useState(false);
+ const [busy,setBusy]=useState(false);
+ const [isAdmin,setIsAdmin]=useState(false);
  const [adminData,setAdminData]=useState<any>(null);
  const [contacts,setContacts]=useState<Character[]>([]);
  const [feed,setFeed]=useState<any[]>([]);
