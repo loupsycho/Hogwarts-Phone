@@ -45,9 +45,10 @@ function App(){
  async function loadAccount(){
   setScreen("loading");setError("");
   try{
-   const session=await authClient.getSession();
-   if(!session.data?.user){setScreen("signed-out");return;}
+   // The server bootstrap is the single source of truth for the authenticated account.
+   // Avoid a separate client-side session check that can disagree with the server cookie.
    const r=await fetch("/api/account/bootstrap",{credentials:"include",cache:"no-store"});
+   if(r.status===401){setScreen("signed-out");return;}
    if(!r.ok)throw new Error("Impossible de charger ton compte.");
    const d=await r.json();setCharacters(d.characters||[]);setIsAdmin(Boolean(d.isAdmin));
    setScreen(d.isAdmin?"admin":d.accountStatus==="pending"?"pending":d.accountStatus==="rejected"?"rejected":d.accountStatus==="suspended"?"suspended":(d.characters?.length?"choose":"empty"));
