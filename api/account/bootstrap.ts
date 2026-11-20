@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { fromNodeHeaders } from "better-auth/node";
-import { auth, databasePool } from "../../src/server/auth.js";
+import { databasePool } from "../../src/server/auth.js";
+import { getActivitySession } from "../../src/server/activity-session.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store");
@@ -11,24 +11,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
-    if (!session) return res.status(401).json({ error: "Not signed in" });
+    const discord = getActivitySession(req.headers.cookie);
+    if (!discord) return res.status(401).json({ error: "Not signed in" });
 
-    const linkedAccount = await databasePool.query(
-      'SELECT a."accountId" AS discord_user_id, u.name AS discord_username, u.image AS discord_avatar_url ' +
-      'FROM "account" a JOIN "user" u ON u.id = a."userId" ' +
-      'WHERE a."userId" = $1 AND a."providerId" = $2 LIMIT 1',
-      [session.user.id, "discord"],
-    );
-
-    if (linkedAccount.rowCount === 0) {
-      return res.status(403).json({ error: "Discord account not linked" });
-    }
-
-    const discord = linkedAccount.rows[0];
     const adminResult = await databasePool.query(
       "SELECT EXISTS (SELECT 1 FROM app_admins WHERE discord_user_id = $1) AS is_admin",
-      [discord.discord_user_id],
+      [discord.id],
     );
     const isAdmin = Boolean(adminResult.rows[0]?.is_admin);
 
@@ -41,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "account_status = CASE WHEN $4 = 'approved' THEN 'approved' ELSE app_users.account_status END, " +
       'updated_at = now() ' +
       'RETURNING id, account_status',
-      [discord.discord_user_id, discord.discord_username ?? "Sorcière ou sorcier", discord.discord_avatar_url, isAdmin ? "approved" : "pending"],
+      [discord.id, discord.username || "Sorcière ou sorcier", discord.avatar, isAdmin ? "approved" : "pending"],
     );
 
     const player = playerResult.rows[0];
