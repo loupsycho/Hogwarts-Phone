@@ -29,6 +29,9 @@ export const auth = betterAuth({
       clientId: process.env.DISCORD_CLIENT_ID!,
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
       scope: ["identify"],
+      mapProfileToUser: (profile) => ({
+        email: profile.email ?? String(profile.id) + "@discord.placeholder.invalid",
+      }),
     },
   },
   emailAndPassword: {
