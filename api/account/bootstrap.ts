@@ -1,14 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { fromNodeHeaders } from "better-auth/node";
 import { auth, databasePool } from "../../src/server/auth";
-
-function requestHeaders(req: VercelRequest): Headers {
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (typeof value === "string") headers.set(key, value);
-    else if (Array.isArray(value)) headers.set(key, value.join(","));
-  }
-  return headers;
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store");
@@ -19,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const session = await auth.api.getSession({ headers: requestHeaders(req) });
+    const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
     if (!session) return res.status(401).json({ error: "Not signed in" });
 
     const linkedAccount = await databasePool.query(
