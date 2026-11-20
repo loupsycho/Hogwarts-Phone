@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
   media_kind text NOT NULL CHECK (media_kind IN ('avatar','instagram','message','gallery')),
   mime_type text NOT NULL,
   file_name text NOT NULL,
-  byte_size integer NOT NULL CHECK (byte_size > 0 AND byte_size <= 10485760),
+  byte_size integer NOT NULL CHECK (byte_size > 0 AND byte_size <= 52428800),
   content bytea NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -46,3 +46,23 @@ CREATE TABLE IF NOT EXISTS public.instagram_follows (
   CHECK (follower_character_id <> followed_character_id)
 );
 CREATE INDEX IF NOT EXISTS instagram_follows_followed_idx ON public.instagram_follows(followed_character_id, created_at DESC);
+
+-- Chunked uploads keep large media below serverless request-size limits.
+CREATE TABLE IF NOT EXISTS public.media_upload_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_user_id uuid NOT NULL REFERENCES public.app_users(id) ON DELETE CASCADE,
+  character_id uuid NOT NULL REFERENCES public.characters(id) ON DELETE CASCADE,
+  media_kind text NOT NULL CHECK (media_kind IN ('avatar','instagram','message','gallery')),
+  mime_type text NOT NULL,
+  file_name text NOT NULL,
+  total_bytes integer NOT NULL CHECK (total_bytes > 0 AND total_bytes <= 52428800),
+  chunk_count integer NOT NULL CHECK (chunk_count > 0 AND chunk_count <= 100),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS public.media_upload_chunks (
+  session_id uuid NOT NULL REFERENCES public.media_upload_sessions(id) ON DELETE CASCADE,
+  chunk_index integer NOT NULL CHECK (chunk_index >= 0),
+  content bytea NOT NULL,
+  PRIMARY KEY (session_id, chunk_index)
+);
+CREATE INDEX IF NOT EXISTS media_upload_sessions_created_idx ON public.media_upload_sessions(created_at);
