@@ -95,7 +95,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const r = await databasePool.query("INSERT INTO instagram_posts(character_id,caption,image_url) VALUES($1,$2,$3) RETURNING id", [activeCharacter, body.caption || null, body.imageUrl || null]);
         return send(res, 201, { id: r.rows[0].id });
       }
-      if (action === "instagram-unlike") {\n        if (!activeCharacter || !body.postId) return bad(res, "Données manquantes.");\n        await databasePool.query("DELETE FROM instagram_likes WHERE post_id=$1 AND character_id=$2", [body.postId, activeCharacter]);\n        return send(res, 200, { ok: true });\n      }\n      if (action === "instagram-like") {
+      if (action === "instagram-unlike") {
+        if (!activeCharacter || !body.postId) return bad(res, "Données manquantes.");
+        await databasePool.query("DELETE FROM instagram_likes WHERE post_id=$1 AND character_id=$2", [body.postId, activeCharacter]);
+        return send(res, 200, { ok: true });
+      }
+      if (action === "instagram-like") {
         if (!activeCharacter || !body.postId) return bad(res, "Données manquantes.");
         await databasePool.query("INSERT INTO instagram_likes(post_id,character_id) VALUES($1,$2) ON CONFLICT DO NOTHING", [body.postId, activeCharacter]);
         return send(res, 200, { ok: true });
