@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { toNodeHandler } from "better-auth/node";
-import { auth } from "../../../../src/server/auth.js";
+import { auth } from "../../../src/server/auth.js";
 
 // Explicit callback endpoint: Discord returns here after the user authorizes Hogwarts Phone.
 // Keep this route separate so the OAuth callback is not dependent on the wildcard rewrite.
