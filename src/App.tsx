@@ -54,7 +54,7 @@ function App(){
    if(d.isAdmin)await loadAdmin();
   }catch(e){setError(e instanceof Error?e.message:"Erreur de connexion.");setScreen("error");}
  }
- async function loadAdmin(){try{setAdminData(await api("admin"));}catch(e){setError(e instanceof Error?e.message:"Erreur admin.");}}
+ async function loadAdmin(){try{const [admin,account]=await Promise.all([api("admin"),fetch("/api/account/bootstrap",{credentials:"include",cache:"no-store"})]);setAdminData(admin);if(account.ok){const data=await account.json();setCharacters(data.characters||[]);}}catch(e){setError(e instanceof Error?e.message:"Erreur admin.");}}
  useEffect(()=>{void loadAccount();},[]);
  async function loadApp(key:AppKey,character=current){
   setActive(key);setNotice("");if(!character||key==="home")return;
