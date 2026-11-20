@@ -20,7 +20,12 @@ const vercelOrigin = process.env.VERCEL_URL
 
 export const auth = betterAuth({
   appName: "Hogwarts Phone",
-  baseURL: process.env.BETTER_AUTH_URL ?? appUrl,
+  // Preview sign-ins must return to the same deployment that initiated OAuth.
+  // Otherwise Discord sends the callback to production, where the preview
+  // callback handler may not exist yet.
+  baseURL: process.env.VERCEL_ENV === "preview"
+    ? "https://hogwarts-phone-git-rebuild-foundation-lou-d160.vercel.app"
+    : (process.env.BETTER_AUTH_URL ?? appUrl),
   secret: process.env.BETTER_AUTH_SECRET,
   database: databasePool,
   trustedOrigins: [
