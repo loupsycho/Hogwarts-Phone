@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { fromNodeHeaders } from "better-auth/node";
-import { auth, databasePool } from "../../src/server/auth";
+import { auth, databasePool } from "../../src/server/auth.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Cache-Control", "no-store");
