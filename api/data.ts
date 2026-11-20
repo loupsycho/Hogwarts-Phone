@@ -2,8 +2,6 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { databasePool } from "../src/server/auth.js";
 import { getActivitySession } from "../src/server/activity-session.js";
 
-type Session = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
-
 async function context(req: VercelRequest) {
   const discord = getActivitySession(req.headers.cookie, req.headers.authorization);
   if (!discord) return null;
@@ -98,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       if (action === "instagram-comment") {
         if (!activeCharacter || !body.postId || !String(body.body ?? "").trim()) return bad(res, "Commentaire invalide.");
-        await databasePool.query("INSERT INTO instagram_comments(post_id,character_id,body) VALUES($1,$2,$3)", [body.postId, activeCharacter, String(body.body).trim()]);
+        await databasePool.query("INSERT INTO instagram_comments(post_id,character_id,body) VALUES($1,$2,$3)", [activeCharacter, body.postId, String(body.body).trim()]);
         return send(res, 201, { ok: true });
       }
       if (action === "link-request") {
