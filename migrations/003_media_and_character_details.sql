@@ -33,3 +33,16 @@ ALTER TABLE public.messages
 
 CREATE INDEX IF NOT EXISTS media_assets_character_idx ON public.media_assets(character_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS media_assets_owner_idx ON public.media_assets(owner_user_id, created_at DESC);
+
+-- Group avatars and Instagram following
+ALTER TABLE public.conversations ADD COLUMN IF NOT EXISTS avatar_media_id uuid;
+ALTER TABLE public.conversations ADD CONSTRAINT conversations_avatar_media_fk
+  FOREIGN KEY (avatar_media_id) REFERENCES public.media_assets(id) ON DELETE SET NULL;
+CREATE TABLE IF NOT EXISTS public.instagram_follows (
+  follower_character_id uuid NOT NULL REFERENCES public.characters(id) ON DELETE CASCADE,
+  followed_character_id uuid NOT NULL REFERENCES public.characters(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (follower_character_id, followed_character_id),
+  CHECK (follower_character_id <> followed_character_id)
+);
+CREATE INDEX IF NOT EXISTS instagram_follows_followed_idx ON public.instagram_follows(followed_character_id, created_at DESC);
