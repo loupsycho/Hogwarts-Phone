@@ -529,3 +529,19 @@ button {
 .multi-choice label{display:flex;align-items:center;gap:9px;color:#e8ddc8;font-size:11px}
 .multi-choice input{width:16px;height:16px;accent-color:#c5a56b}
 @media(max-width:480px){.character-admin-row{flex-direction:column;align-items:stretch}.character-admin-row .action-row button{flex:1;justify-content:center}}
+
+
+/* Character orientation and device media */
+.orientation-card { max-width: 390px; }
+.orientation-options { display: grid; gap: 8px; margin: 20px 0 12px; }
+.orientation-option { min-height: 43px; border: 1px solid #c5a56b55; border-radius: 7px; background: #111719; color: #e8ddc8; font: 12px 'DM Sans',sans-serif; cursor: pointer; }
+.orientation-option.selected { border-color: #dfc58f; background: #c5a56b24; color: #fff1d8; box-shadow: inset 0 0 0 1px #c5a56b55; }
+.orientation-line { color: #d5bd8a !important; font-size: 10px !important; }
+.profile-avatar { width: 104px; height: 104px; margin: 0 auto 15px; }
+.profile-avatar svg { width: 36px; height: 36px; }
+.profile-upload { position: relative; overflow: hidden; cursor: pointer; text-align: center; }
+.profile-upload input[type=file] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.message-attachment { display: block; max-width: min(100%, 280px); max-height: 280px; object-fit: contain; border-radius: 8px; margin-top: 8px; }
+.post-image { background: #090d0d; }
+.field-label input[type=file] { padding: 9px; border-style: dashed; cursor: pointer; }
+@media (min-width: 700px) { .orientation-card { max-width: 440px; } }
