@@ -20,8 +20,9 @@ export function createActivitySession(session: Omit<ActivitySession, "exp">) {
   return payload + "." + sign(payload);
 }
 
-export function getActivitySession(cookieHeader?: string): ActivitySession | null {
-  const raw = cookieHeader?.split(";").map((part) => part.trim()).find((part) => part.startsWith(COOKIE_NAME + "="))?.slice(COOKIE_NAME.length + 1);
+export function getActivitySession(cookieHeader?: string, authorization?: string): ActivitySession | null {
+  const bearer = authorization?.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+  const raw = bearer || cookieHeader?.split(";").map((part) => part.trim()).find((part) => part.startsWith(COOKIE_NAME + "="))?.slice(COOKIE_NAME.length + 1);
   if (!raw) return null;
   const [payload, signature] = raw.split(".");
   if (!payload || !signature) return null;
