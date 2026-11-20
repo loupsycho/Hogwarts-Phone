@@ -4,7 +4,7 @@ import { ArrowLeft, CalendarDays, Contact, Heart, HeartHandshake, Home, Instagra
 
 const discordSdk = new DiscordSDK("1573343083179942080");
 
-type Character = { id:string; first_name?:string; last_name?:string; firstName?:string; lastName?:string; character_type?:string; characterType?:string; house:string|null; role_title?:string|null; roleTitle?:string|null; avatar_url?:string|null; avatarUrl?:string|null; owner_user_id?:string; discord_username?:string };
+type Character = { id:string; first_name?:string; last_name?:string; firstName?:string; lastName?:string; character_type?:string; characterType?:string; house:string|null; role_title?:string|null; roleTitle?:string|null; avatar_url?:string|null; avatarUrl?:string|null; owner_user_id?:string; discord_username?:string; age?:number|null; character_kind?:string|null; quidditch_position?:string|null; optional_courses?:string[]; important_role?:string|null; house_responsibility?:string|null };
 type AppKey = "home"|"messages"|"instagram"|"gazette"|"contacts"|"links"|"agenda";
 const apps = [
  {id:"messages" as const,label:"Messages",icon:Mail,desc:"Hiboux et conversations"},
@@ -44,6 +44,8 @@ function App(){
  const [selectedConversation,setSelectedConversation]=useState("");
  const [search,setSearch]=useState("");
  const [notice,setNotice]=useState("");
+ const [expandedPlayer,setExpandedPlayer]=useState<string|null>(null);
+ const [editingCharacter,setEditingCharacter]=useState<any|null>(null);
 
  async function loadAccount(){
   setScreen("loading");setError("");
@@ -100,9 +102,10 @@ function App(){
  async function openConversation(id:string){setSelectedConversation(id);try{const d=await api("messages","GET",{}, {characterId:current!.id,conversationId:id});setMessages(d.messages||[]);}catch(e){setNotice(e instanceof Error?e.message:"Chargement impossible.");}}
  const visibleContacts=contacts.filter(c=>nameOf(c).toLowerCase().includes(search.toLowerCase()));
  const form=(action:string,fn:(e:FormEvent<HTMLFormElement>)=>void,children:ReactNode)=><form className="feature-form" onSubmit={fn}>{children}<button className="primary-action" disabled={busy} type="submit">{busy?"En cours…":action}</button></form>;
- const field=(label:string,name:string,placeholder="",type="text")=><label className="field-label">{label}<input name={name} placeholder={placeholder} type={type} required /></label>;
- const select=(label:string,name:string,opts:string[])=><label className="field-label">{label}<select name={name}>{opts.map(v=><option key={v} value={v.includes("|")?v.split("|",1)[0]:v}>{v.includes("|")?v.slice(v.indexOf("|")+1):v}</option>)}</select></label>;
- const textArea=(label:string,name:string,placeholder="")=><label className="field-label">{label}<textarea name={name} placeholder={placeholder} rows={3}/></label>;
+ const field=(label:string,name:string,placeholder="",type="text",defaultValue?:string|number,readOnly=false)=><label className="field-label">{label}<input name={name} placeholder={placeholder} type={type} required={!readOnly} readOnly={readOnly} defaultValue={defaultValue??""}/></label>;
+ const select=(label:string,name:string,opts:string[],defaultValue?:string)=><label className="field-label">{label}<select name={name} defaultValue={defaultValue??(opts[0]?.includes("|")?opts[0].split("|",1)[0]:opts[0])}>{opts.map(v=><option key={v} value={v.includes("|")?v.split("|",1)[0]:v}>{v.includes("|")?v.slice(v.indexOf("|")+1):v}</option>)}</select></label>;
+ const multiSelect=(label:string,name:string,opts:string[],selected:string[]=[])=> <label className="field-label">{label}<select name={name} multiple defaultValue={selected} size={Math.min(opts.length,6)}>{opts.map(v=><option key={v} value={v}>{v}</option>)}</select><small className="field-hint">Maintiens la sélection pour choisir plusieurs matières. Aucun choix est également possible.</small></label>;
+ const textArea=(label:string,name:string,placeholder="",defaultValue="")=><label className="field-label">{label}<textarea name={name} placeholder={placeholder} rows={3} defaultValue={defaultValue}/></label>;
  const pageTitle=apps.find(a=>a.id===active)?.label||"Accueil";
  return <main className="page-shell"><div className="ambient ambient-one"/><div className="ambient ambient-two"/><section className="phone-frame" aria-label="Hogwarts Phone">
  <header className="status-bar"><span>HOGWARTS</span><span className="status-right">✦ WIFI <span className="battery">100%</span></span></header>
