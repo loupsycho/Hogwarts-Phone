@@ -25,8 +25,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const linkedAccount = await databasePool.query(
       'SELECT a."accountId" AS discord_user_id, u.name AS discord_username, u.image AS discord_avatar_url ' +
       'FROM "account" a JOIN "user" u ON u.id = a."userId" ' +
-      'WHERE a."userId" = $1 AND a."providerId" = \\'discord\\' LIMIT 1',
-      [session.user.id],
+      'WHERE a."userId" = $1 AND a."providerId" = $2 LIMIT 1',
+      [session.user.id, "discord"],
     );
 
     if (linkedAccount.rowCount === 0) {
