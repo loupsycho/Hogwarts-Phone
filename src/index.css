@@ -301,3 +301,178 @@ html, body, #root {
     min-height: 100vh;
   }
 }
+
+
+/* Responsive layout: phone, tablet and desktop */
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+.page-shell {
+  height: 100dvh;
+  min-height: 100dvh;
+}
+
+.phone-frame {
+  min-height: 0;
+  height: 100dvh;
+}
+
+.status-bar {
+  flex: 0 0 auto;
+  padding-top: max(13px, env(safe-area-inset-top));
+}
+
+.top-brand,
+.character-banner,
+.bottom-nav,
+.home-indicator {
+  flex: 0 0 auto;
+}
+
+.screen-content,
+.auth-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.screen-content {
+  width: 100%;
+  margin-inline: auto;
+}
+
+.subpage {
+  gap: 4px;
+}
+
+.back-link {
+  min-height: 46px;
+  padding: 8px 13px;
+  margin: 0 0 8px;
+  border: 1px solid #c5a56b45;
+  border-radius: 8px;
+  background: #c5a56b0c;
+  font-size: 12px;
+  touch-action: manipulation;
+}
+
+.back-link:hover,
+.back-link:focus-visible {
+  background: #c5a56b1c;
+  border-color: #d7b879a0;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+@media (min-width: 700px) {
+  .top-brand {
+    padding-inline: clamp(24px, 4vw, 64px);
+  }
+
+  .screen-content {
+    max-width: 1180px;
+    padding: 28px clamp(24px, 4vw, 64px) 30px;
+  }
+
+  .welcome-card {
+    min-height: 230px;
+    padding: 32px;
+  }
+
+  .welcome-card h2 {
+    font-size: clamp(40px, 4vw, 56px);
+  }
+
+  .app-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .app-tile {
+    min-height: 138px;
+    padding: 16px;
+  }
+
+  .app-label {
+    font-size: 19px;
+  }
+
+  .app-description {
+    font-size: 10px;
+  }
+
+  .character-screen {
+    max-width: 820px;
+  }
+
+  .subpage-card {
+    min-height: 340px;
+  }
+
+  .bottom-nav {
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 1100px) {
+  .app-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .welcome-card {
+    min-height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-bar {
+    height: auto;
+    min-height: 42px;
+  }
+
+  .screen-content {
+    padding-bottom: 24px;
+  }
+
+  .subpage {
+    padding-top: 12px;
+  }
+
+  .back-link {
+    align-self: flex-start;
+    margin-left: -4px;
+  }
+
+  .bottom-nav {
+    padding-bottom: max(7px, env(safe-area-inset-bottom));
+  }
+
+  .home-indicator {
+    margin-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-height: 700px) {
+  .welcome-card {
+    min-height: 175px;
+    padding-block: 18px 14px;
+  }
+
+  .welcome-card h2 {
+    font-size: 32px;
+    margin-top: 10px;
+  }
+
+  .section-heading {
+    margin-top: 17px;
+  }
+
+  .app-tile {
+    min-height: 100px;
+  }
+}
