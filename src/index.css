@@ -564,3 +564,12 @@ button {
 .avatar-crop-panel input[type=range] { accent-color:#c5a56b; padding:0; }
 .avatar-crop-panel .action-row { flex-wrap:wrap; }
 .avatar-crop-panel .action-row button { flex:1; justify-content:center; }
+
+
+.instagram-author { display:block; padding:0; border:0; background:transparent; color:#f0e4ce; font:inherit; text-align:left; cursor:pointer; }
+.instagram-author:hover { color:#dfc58f; }
+.instagram-profile-head { display:flex; align-items:center; gap:13px; margin:14px 0; }
+.profile-avatar-image { width:72px; height:72px; flex:0 0 auto; object-fit:cover; border:1px solid #c5a56b; border-radius:50%; }
+.group-avatar { width:38px; height:38px; flex:0 0 auto; object-fit:cover; border-radius:50%; border:1px solid #c5a56b80; }
+.notification-unread { border-color:#d6b87999; background:#c5a56b14; cursor:pointer; }
+.notification-read { opacity:.78; cursor:pointer; }
