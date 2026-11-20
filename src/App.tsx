@@ -114,9 +114,9 @@ function App() {
         ].filter(Boolean).join(' · ');
         throw new Error(diagnostic || 'Le serveur a refusé de démarrer la connexion Discord.');
       }
-      // Better Auth gère lui-même la redirection OAuth, comme le flux standard
-      // utilisé par Sterling avec son fournisseur d'identité.
-      return;
+      // Better Auth gère lui-même la redirection OAuth.
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'La connexion Discord a échoué.');
       setIsSigningIn(false);
     }
   };
