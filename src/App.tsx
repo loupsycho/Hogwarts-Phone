@@ -1,318 +1,101 @@
-import { useEffect, useState } from 'react';
-import {
-  Bell,
-  CalendarDays,
-  ChevronLeft,
-  Contact,
-  HeartHandshake,
-  Home,
-  Instagram,
-  LogOut,
-  Mail,
-  Newspaper,
-  Sparkles,
-  Users,
-  WandSparkles,
-} from 'lucide-react';
-import { authClient } from './lib/auth-client';
+import { FormEvent, useEffect, useState } from "react";
+import { authClient } from "./lib/auth-client";
+import { ArrowLeft, CalendarDays, Contact, Heart, HeartHandshake, Home, Instagram, LogOut, Mail, Newspaper, Plus, Send, Shield, Sparkles, Users, WandSparkles } from "lucide-react";
 
-type AppKey = 'home' | 'messages' | 'instagram' | 'gazette' | 'contacts' | 'links' | 'agenda';
-type Character = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  characterType: 'student' | 'staff';
-  house: string | null;
-  roleTitle: string | null;
-  avatarUrl: string | null;
-};
-type AccountStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
-type AuthScreen = 'checking' | 'signed-out' | 'pending' | 'rejected' | 'suspended' | 'no-characters' | 'select-character' | 'app' | 'admin' | 'error';
-
-const applications: {
-  key: Exclude<AppKey, 'home'>;
-  label: string;
-  description: string;
-  icon: typeof Mail;
-  seal: string;
-}[] = [
-  { key: 'messages', label: 'Messages', description: 'Hiboux et conversations', icon: Mail, seal: 'I' },
-  { key: 'instagram', label: 'Instagram', description: 'La vie des sorciers', icon: Instagram, seal: 'II' },
-  { key: 'gazette', label: 'Gazette du Sorcier', description: 'Les nouvelles du monde magique', icon: Newspaper, seal: 'III' },
-  { key: 'contacts', label: 'Contacts', description: 'Maisons et personnel', icon: Contact, seal: 'IV' },
-  { key: 'links', label: 'Demandes de liens', description: 'Vos relations entre personnages', icon: HeartHandshake, seal: 'V' },
-  { key: 'agenda', label: 'Agenda', description: 'Événements et rendez-vous', icon: CalendarDays, seal: 'VI' },
+type Character = { id:string; first_name?:string; last_name?:string; firstName?:string; lastName?:string; character_type?:string; characterType?:string; house:string|null; role_title?:string|null; roleTitle?:string|null; avatar_url?:string|null; avatarUrl?:string|null; owner_user_id?:string; discord_username?:string };
+type AppKey = "home"|"messages"|"instagram"|"gazette"|"contacts"|"links"|"agenda";
+const apps = [
+ {id:"messages" as const,label:"Messages",icon:Mail,desc:"Hiboux et conversations"},
+ {id:"instagram" as const,label:"Instagram",icon:Instagram,desc:"Le fil de vos personnages"},
+ {id:"gazette" as const,label:"Gazette du Sorcier",icon:Newspaper,desc:"Actualités et publications"},
+ {id:"contacts" as const,label:"Contacts",icon:Contact,desc:"Élèves et personnel"},
+ {id:"links" as const,label:"Demandes de liens",icon:HeartHandshake,desc:"Relations entre personnages"},
+ {id:"agenda" as const,label:"Agenda",icon:CalendarDays,desc:"Événements et rendez-vous"},
 ];
-
-const pageCopy: Record<Exclude<AppKey, 'home'>, { title: string; subtitle: string }> = {
-  messages: { title: 'Messages', subtitle: 'Vos hiboux, conversations privées et groupes prendront place ici.' },
-  instagram: { title: 'Instagram', subtitle: 'Chaque personnage aura son profil et retrouvera les publications dans un fil commun.' },
-  gazette: { title: 'La Gazette du Sorcier', subtitle: 'Retrouvez les articles, rumeurs et actualités publiés dans le monde magique.' },
-  contacts: { title: 'Contacts', subtitle: 'Les élèves seront classés par maison. Le personnel disposera de sa propre catégorie professionnelle.' },
-  links: { title: 'Demandes de liens', subtitle: 'Envoyez, recevez et gérez les demandes de liens entre vos personnages.' },
-  agenda: { title: 'Agenda', subtitle: 'Retrouvez les événements, rendez-vous et dates importantes.' },
-};
-
-function App() {
-  const [authScreen, setAuthScreen] = useState<AuthScreen>('checking');
-  const [characters, setCharacters] = useState<Character[]>([]);
-  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
-  const [activeApp, setActiveApp] = useState<AppKey>('home');
-  const [authError, setAuthError] = useState('');
-  const [isSigningIn, setIsSigningIn] = useState(false);
-
-  const loadPlayer = async () => {
-    setAuthScreen('checking');
-    try {
-      const session = await authClient.getSession();
-      if (!session.data?.user) {
-        setAuthScreen('signed-out');
-        return;
-      }
-
-      const response = await fetch('/api/account/bootstrap', { credentials: 'include' });
-      if (response.status === 401) {
-        setAuthScreen('signed-out');
-        return;
-      }
-      if (!response.ok) throw new Error('Impossible de charger le compte joueur.');
-      const data: { accountStatus: AccountStatus; characters: Character[]; isAdmin?: boolean } = await response.json();
-      setCharacters(data.characters ?? []);
-
-      if (data.isAdmin) setAuthScreen('admin');
-      else if (data.accountStatus === 'pending') setAuthScreen('pending');
-      else if (data.accountStatus === 'rejected') setAuthScreen('rejected');
-      else if (data.accountStatus === 'suspended') setAuthScreen('suspended');
-      else if (!data.characters?.length) setAuthScreen('no-characters');
-      else setAuthScreen('select-character');
-    } catch {
-      setAuthError('La connexion au compte n’a pas pu être vérifiée. Réessaie dans quelques instants.');
-      setAuthScreen('error');
-    }
-  };
-
-  useEffect(() => {
-    void loadPlayer();
-  }, []);
-
-  const signIn = async () => {
-    if (isSigningIn) return;
-    setAuthError('');
-    setIsSigningIn(true);
-    try {
-      const response = await fetch('/api/auth/sign-in/social', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          provider: 'discord',
-          callbackURL: window.location.origin,
-          errorCallbackURL: window.location.origin,
-        }),
-      });
-      const data = await response.json().catch(() => ({})) as {
-        url?: string;
-        message?: string;
-        error?: string;
-      };
-      if (!response.ok || !data.url) {
-        throw new Error(data.message || data.error || `Erreur du serveur de connexion (HTTP ${response.status}).`);
-      }
-      window.location.assign(data.url);
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : 'La connexion Discord a échoué.');
-      setIsSigningIn(false);
-    }
-  };
-
-  const signOut = async () => {
-    await authClient.signOut();
-    setSelectedCharacter(null);
-    setCharacters([]);
-    setActiveApp('home');
-    setAuthScreen('signed-out');
-  };
-
-  const openApp = (key: AppKey) => setActiveApp(key);
-
-  const renderMessageScreen = (title: string, message: string, action?: { label: string; onClick: () => void }) => (
-    <div className="auth-content">
-      <div className="auth-card">
-        <div className="auth-crest"><WandSparkles size={29} /></div>
-        <p className="eyebrow">HOGWARTS • A NEW ERA</p>
-        <h2>{title}</h2>
-        <p>{message}</p>
-        {action && <button className="primary-action" onClick={action.onClick}>{action.label}</button>}
-        <button className="quiet-action" onClick={signOut}>Se déconnecter</button>
-      </div>
-    </div>
-  );
-
-  return (
-    <main className="page-shell">
-      <div className="ambient ambient-one" />
-      <div className="ambient ambient-two" />
-
-      <section className="phone-frame" aria-label="Hogwarts Phone">
-        <header className="status-bar">
-          <span>9:41</span>
-          <span className="status-right"><span>✦</span><span>Wi-Fi</span><span className="battery">100%</span></span>
-        </header>
-
-        <div className="top-brand">
-          <div className="crest"><WandSparkles size={25} /></div>
-          <div>
-            <p className="eyebrow">HOGWARTS • A NEW ERA</p>
-            <h1>Hogwarts <span>Phone</span></h1>
-          </div>
-          {authScreen === 'app' && selectedCharacter ? (
-            <button className="icon-button notification-button" aria-label="Changer de personnage" title="Changer de personnage" onClick={() => { setSelectedCharacter(null); setAuthScreen('select-character'); }}>
-              <Users size={19} />
-            </button>
-          ) : null}
-        </div>
-
-        {authScreen === 'checking' && (
-          <div className="auth-content">
-            <div className="auth-card">
-              <div className="auth-crest"><WandSparkles size={29} /></div>
-              <p className="eyebrow">HOGWARTS • A NEW ERA</p>
-              <h2>Un instant…</h2>
-              <p>Nous préparons votre espace magique.</p>
-              <span className="feature-status">CONNEXION EN COURS</span>
-            </div>
-          </div>
-        )}
-
-        {authScreen === 'signed-out' && (
-          <div className="auth-content">
-            <div className="auth-card">
-              <div className="auth-crest"><WandSparkles size={29} /></div>
-              <p className="eyebrow">VOTRE TÉLÉPHONE MAGIQUE</p>
-              <h2>Bienvenue à<br /><em>Hogwarts Phone</em></h2>
-              <p>Connecte-toi avec ton compte Discord pour retrouver tes personnages et accéder à leurs applications.</p>
-              <button type="button" className="primary-action discord-action" onClick={() => { void signIn(); }} disabled={isSigningIn}>
-                {isSigningIn ? 'Ouverture de Discord…' : 'Continuer avec Discord'}
-              </button>
-              {authError && <p className="auth-error">{authError}</p>}
-              <p className="auth-footnote">L’accès est soumis à la validation de ton compte par l’administration.</p>
-            </div>
-          </div>
-        )}
-
-        {authScreen === 'admin' && renderMessageScreen('Espace administration', 'Ton compte propriétaire est reconnu. Le panneau de gestion Hogwarts Phone sera accessible ici : gestion des joueurs, des accès, des personnages, des contenus et des applications.')}
-        {authScreen === 'pending' && renderMessageScreen('Compte en attente', 'Ta demande d’accès a bien été enregistrée. Tu pourras utiliser Hogwarts Phone dès que ton compte Discord aura été accepté par l’administration.')}
-        {authScreen === 'rejected' && renderMessageScreen('Accès refusé', 'L’administration n’a pas autorisé l’accès à Hogwarts Phone pour ce compte.')}
-        {authScreen === 'suspended' && renderMessageScreen('Compte suspendu', 'L’accès à Hogwarts Phone est temporairement suspendu pour ce compte.')}
-        {authScreen === 'no-characters' && renderMessageScreen('Ton espace est prêt', 'Ton compte est accepté, mais aucun personnage ne t’a encore été attribué. Ils apparaîtront ici dès que l’administration les aura créés.')}
-        {authScreen === 'error' && renderMessageScreen('Un petit souci magique', authError, { label: 'Réessayer', onClick: () => void loadPlayer() })}
-
-        {authScreen === 'select-character' && (
-          <div className="screen-content character-screen">
-            <div className="section-heading character-heading">
-              <div>
-                <p className="eyebrow">ESPACE PERSONNEL</p>
-                <h3>Qui incarnes-tu ?</h3>
-              </div>
-              <button className="quiet-icon-action" onClick={signOut} aria-label="Se déconnecter"><LogOut size={17} /></button>
-            </div>
-            <p className="character-intro">Choisis le personnage avec lequel tu souhaites entrer dans ton téléphone.</p>
-            <div className="character-list">
-              {characters.map((character) => (
-                <button className="character-card" key={character.id} onClick={() => { setSelectedCharacter(character); setActiveApp('home'); setAuthScreen('app'); }}>
-                  <span className="character-avatar">
-                    {character.avatarUrl ? <img src={character.avatarUrl} alt="" /> : <WandSparkles size={22} />}
-                  </span>
-                  <span className="character-info">
-                    <strong>{character.firstName} {character.lastName}</strong>
-                    <small>{character.characterType === 'student' ? 'Élève' : character.roleTitle || 'Personnel'}{character.house ? ' · ' + character.house : ''}</small>
-                  </span>
-                  <ChevronLeft className="character-arrow" size={18} />
-                </button>
-              ))}
-            </div>
-            <button className="quiet-action" onClick={signOut}>Se déconnecter</button>
-          </div>
-        )}
-
-        {authScreen === 'app' && selectedCharacter && (
-          <>
-            <div className="character-banner">
-              <span>{selectedCharacter.firstName} {selectedCharacter.lastName}</span>
-              <small>{selectedCharacter.house ?? selectedCharacter.roleTitle ?? 'Hogwarts'}</small>
-            </div>
-            {activeApp === 'home' ? (
-              <div className="screen-content">
-                <section className="welcome-card">
-                  <div className="welcome-ornament">✦</div>
-                  <p className="eyebrow">LE MONDE DES SORCIERS</p>
-                  <h2>La magie<br /><em>dans votre poche.</em></h2>
-                  <p className="welcome-copy">Votre courrier, vos rencontres et toute votre vie magique réunis dans un seul endroit.</p>
-                  <div className="welcome-rule"><span /> <WandSparkles size={15} /> <span /></div>
-                </section>
-
-                <div className="section-heading">
-                  <div>
-                    <p className="eyebrow">VOTRE QUOTIDIEN MAGIQUE</p>
-                    <h3>Applications</h3>
-                  </div>
-                  <span className="app-count">06</span>
-                </div>
-
-                <div className="app-grid">
-                  {applications.map((app) => {
-                    const Icon = app.icon;
-                    return (
-                      <button className={'app-tile app-' + app.key} key={app.key} onClick={() => openApp(app.key)}>
-                        <span className="app-seal">{app.seal}</span>
-                        <span className="app-icon"><Icon size={22} strokeWidth={1.65} /></span>
-                        <span className="app-label">{app.label}</span>
-                        <span className="app-description">{app.description}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="parchment-note">
-                  <Sparkles size={16} />
-                  <span>Une nouvelle ère commence à Poudlard.</span>
-                </div>
-              </div>
-            ) : (
-              <div className="screen-content subpage">
-                <button className="back-link" onClick={() => openApp('home')}><ChevronLeft size={16} /> Retour aux applications</button>
-                <div className="subpage-card">
-                  <div className="subpage-icon"><WandSparkles size={27} /></div>
-                  <p className="eyebrow">HOGWARTS • A NEW ERA</p>
-                  <h2>{pageCopy[activeApp].title}</h2>
-                  <p>{pageCopy[activeApp].subtitle}</p>
-                  <span className="feature-status">EN PRÉPARATION</span>
-                </div>
-              </div>
-            )}
-
-            <nav className="bottom-nav" aria-label="Navigation principale">
-              <button className={activeApp === 'home' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('home')}>
-                <Home size={18} /><span>Accueil</span>
-              </button>
-              <button className={activeApp === 'messages' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('messages')}>
-                <Mail size={18} /><span>Messages</span>
-              </button>
-              <button className={activeApp === 'gazette' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('gazette')}>
-                <Newspaper size={18} /><span>Gazette</span>
-              </button>
-              <button className={activeApp === 'contacts' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('contacts')}>
-                <Users size={18} /><span>Contacts</span>
-              </button>
-            </nav>
-          </>
-        )}
-        <div className="home-indicator" />
-      </section>
-
-      <footer className="outside-caption">HOGWARTS • A NEW ERA</footer>
-    </main>
-  );
+const nameOf=(c:Character)=>[c.first_name??c.firstName,c.last_name??c.lastName].filter(Boolean).join(" ");
+const typeOf=(c:Character)=>c.character_type??c.characterType??"student";
+const avatarOf=(c:Character)=>c.avatar_url??c.avatarUrl;
+async function api(action:string, method="GET", data:Record<string,unknown>={}, query:Record<string,string>={}) {
+ const params=new URLSearchParams({action,...query});
+ const response=await fetch("/api/data?"+params.toString(),{method,credentials:"include",headers:{"Content-Type":"application/json"},...(method==="GET"?{}:{body:JSON.stringify({...data,action})})});
+ const result=await response.json().catch(()=>({}));
+ if(!response.ok) throw new Error(result.error||"Une erreur est survenue.");
+ return result;
 }
+function App(){
+ const [screen,setScreen]=useState("loading");
+ const [error,setError]=useState("");
+ const [characters,setCharacters]=useState<Character[]>([]);
+ const [current,setCurrent]=useState<Character|null>(null);
+ const [active,setActive]=useState<AppKey>("home");
+ const [busy,setBusy]=useState(false);
+ const [adminData,setAdminData]=useState<any>(null);
+ const [contacts,setContacts]=useState<Character[]>([]);
+ const [feed,setFeed]=useState<any[]>([]);
+ const [articles,setArticles]=useState<any[]>([]);
+ const [links,setLinks]=useState<any[]>([]);
+ const [events,setEvents]=useState<any[]>([]);
+ const [conversations,setConversations]=useState<any[]>([]);
+ const [messages,setMessages]=useState<any[]>([]);
+ const [selectedConversation,setSelectedConversation]=useState("");
+ const [search,setSearch]=useState("");
+ const [notice,setNotice]=useState("");
 
+ async function loadAccount(){
+  setScreen("loading");setError("");
+  try{
+   const session=await authClient.getSession();
+   if(!session.data?.user){setScreen("signed-out");return;}
+   const r=await fetch("/api/account/bootstrap",{credentials:"include",cache:"no-store"});
+   if(!r.ok)throw new Error("Impossible de charger ton compte.");
+   const d=await r.json();setCharacters(d.characters||[]);
+   setScreen(d.isAdmin?"admin":d.accountStatus==="pending"?"pending":d.accountStatus==="rejected"?"rejected":d.accountStatus==="suspended"?"suspended":(d.characters?.length?"choose":"empty"));
+   if(d.isAdmin)await loadAdmin();
+  }catch(e){setError(e instanceof Error?e.message:"Erreur de connexion.");setScreen("error");}
+ }
+ async function loadAdmin(){try{setAdminData(await api("admin"));}catch(e){setError(e instanceof Error?e.message:"Erreur admin.");}}
+ useEffect(()=>{void loadAccount();},[]);
+ async function loadApp(key:AppKey,character=current){
+  setActive(key);setNotice("");if(!character||key==="home")return;
+  try{
+   if(key==="contacts"){const d=await api("contacts");setContacts(d.characters||[]);}
+   if(key==="instagram"){const d=await api("feed","GET",{}, {characterId:character.id});setFeed(d.posts||[]);}
+   if(key==="gazette"){const d=await api("gazette");setArticles(d.articles||[]);}
+   if(key==="links"){const d=await api("links","GET",{}, {characterId:character.id});setLinks(d.requests||[]);}
+   if(key==="agenda"){const d=await api("agenda","GET",{}, {characterId:character.id});setEvents(d.events||[]);}
+   if(key==="messages"){const d=await api("conversations","GET",{}, {characterId:character.id});setConversations(d.conversations||[]);setSelectedConversation("");setMessages([]);}
+  }catch(e){setNotice(e instanceof Error?e.message:"Chargement impossible.");}
+ }
+ async function choose(c:Character){setCurrent(c);setScreen("phone");setActive("home");}
+ async function signOut(){await authClient.signOut();setCurrent(null);setCharacters([]);setScreen("signed-out");}
+ async function signIn(){setBusy(true);setError("");try{const r=await fetch("/api/auth/sign-in/social",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({provider:"discord",callbackURL:location.origin,errorCallbackURL:location.origin})});const d=await r.json();if(!r.ok||!d.url)throw new Error(d.message||d.error||"Connexion Discord impossible.");location.assign(d.url);}catch(e){setError(e instanceof Error?e.message:"Connexion impossible.");setBusy(false);}}
+ async function submit(action:string,data:Record<string,unknown>,refresh?:()=>Promise<void>){setBusy(true);setNotice("");try{await api(action,"POST",{...data,characterId:current?.id});setNotice("C'est enregistré.");if(refresh)await refresh();}catch(e){setNotice(e instanceof Error?e.message:"Enregistrement impossible.");}finally{setBusy(false);}}
+ async function openConversation(id:string){setSelectedConversation(id);try{const d=await api("messages","GET",{}, {characterId:current!.id,conversationId:id});setMessages(d.messages||[]);}catch(e){setNotice(e instanceof Error?e.message:"Chargement impossible.");}}
+ const visibleContacts=contacts.filter(c=>nameOf(c).toLowerCase().includes(search.toLowerCase()));
+ const form=(action:string,fn:(e:FormEvent<HTMLFormElement>)=>void,children:React.ReactNode)=><form className="feature-form" onSubmit={fn}>{children}<button className="primary-action" disabled={busy} type="submit">{busy?"En cours…":action}</button></form>;
+ const field=(label:string,name:string,placeholder="",type="text")=><label className="field-label">{label}<input name={name} placeholder={placeholder} type={type} required /></label>;
+ const select=(label:string,name:string,opts:string[])=><label className="field-label">{label}<select name={name}>{opts.map(v=><option key={v} value={v}>{v}</option>)}</select></label>;
+ const textArea=(label:string,name:string,placeholder="")=><label className="field-label">{label}<textarea name={name} placeholder={placeholder} rows={3}/></label>;
+ const pageTitle=apps.find(a=>a.id===active)?.label||"Accueil";
+ return <main className="page-shell"><div className="ambient ambient-one"/><div className="ambient ambient-two"/><section className="phone-frame" aria-label="Hogwarts Phone">
+ <header className="status-bar"><span>HOGWARTS</span><span className="status-right">✦ WIFI <span className="battery">100%</span></span></header>
+ <div className="top-brand"><div className="crest"><WandSparkles size={25}/></div><div><p className="eyebrow">HOGWARTS • A NEW ERA</p><h1>Hogwarts <span>Phone</span></h1></div>{screen==="phone"&&<button className="icon-button" onClick={()=>{setCurrent(null);setScreen("choose");}} title="Changer de personnage"><Users size={18}/></button>}</div>
+ {screen==="loading"&&<div className="auth-content"><div className="auth-card"><div className="auth-crest"><Sparkles/></div><h2>Un instant…</h2><p>Ouverture de ton espace magique.</p></div></div>}
+ {screen==="signed-out"&&<div className="auth-content"><div className="auth-card"><div className="auth-crest"><WandSparkles size={30}/></div><p className="eyebrow">VOTRE TÉLÉPHONE MAGIQUE</p><h2>Bienvenue à<br/><em>Hogwarts Phone</em></h2><p>Connecte-toi avec Discord pour retrouver tes personnages et leurs applications.</p><button className="primary-action discord-action" disabled={busy} onClick={()=>void signIn()}>{busy?"Ouverture de Discord…":"Continuer avec Discord"}</button>{error&&<p className="auth-error">{error}</p>}<p className="auth-footnote">L'accès est soumis à la validation de ton compte.</p></div></div>}
+ {["pending","rejected","suspended","empty","error"].includes(screen)&&<div className="auth-content"><div className="auth-card"><div className="auth-crest"><Shield/></div><h2>{screen==="pending"?"Compte en attente":screen==="rejected"?"Accès refusé":screen==="suspended"?"Compte suspendu":screen==="empty"?"Ton espace est prêt":"Un souci magique"}</h2><p>{screen==="pending"?"Ta demande attend la validation de l'administration.":screen==="rejected"?"L'administration n'a pas autorisé ce compte.":screen==="suspended"?"Ton accès est suspendu.":screen==="empty"?"Ton compte est accepté. L'administration pourra t'attribuer un personnage.":error}</p><button className="quiet-action" onClick={()=>void signOut()}>Se déconnecter</button>{screen==="error"&&<button className="primary-action" onClick={()=>void loadAccount()}>Réessayer</button>}</div></div>}
+ {screen==="choose"&&<div className="screen-content"><div className="section-heading"><div><p className="eyebrow">ESPACE PERSONNEL</p><h3>Qui incarnes-tu ?</h3></div><button className="quiet-icon-action" onClick={()=>void signOut()}><LogOut size={17}/></button></div><p className="character-intro">Choisis ton personnage pour ouvrir son téléphone.</p><div className="character-list">{characters.map(c=><button className="character-card" key={c.id} onClick={()=>void choose(c)}><span className="character-avatar">{avatarOf(c)?<img src={avatarOf(c)!} alt=""/>:<WandSparkles/>}</span><span className="character-info"><strong>{nameOf(c)}</strong><small>{typeOf(c)==="student"?"Élève":c.role_title??c.roleTitle??"Personnel"}{c.house?" · "+c.house:""}</small></span><span>›</span></button>)}</div></div>}
+ {screen==="admin"&&<div className="screen-content"><div className="section-heading"><div><p className="eyebrow">ACCÈS PROPRIÉTAIRE</p><h3>Administration</h3></div><button className="quiet-icon-action" onClick={()=>void signOut()}><LogOut size={17}/></button></div><p className="character-intro">Gestion des joueurs, personnages et publications.</p><section className="admin-section"><h4>Comptes joueurs</h4>{(adminData?.players||[]).map((p:any)=><div className="admin-row" key={p.id}><div><strong>{p.discord_username}</strong><small>{p.account_status} · Discord {p.discord_user_id}</small></div><select value={p.account_status} onChange={async e=>{await api("admin-player-status","POST",{userId:p.id,status:e.target.value});await loadAdmin();}}><option value="pending">En attente</option><option value="approved">Accepté</option><option value="rejected">Refusé</option><option value="suspended">Suspendu</option></select></div>)}</section><section className="admin-section"><h4>Créer un personnage</h4>{form("Créer le personnage",async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));await submit("admin-character",{ownerUserId:d.ownerUserId,firstName:d.firstName,lastName:d.lastName,characterType:d.characterType,house:d.house||null,roleTitle:d.roleTitle||null,avatarUrl:d.avatarUrl||null,biography:d.biography||null},loadAdmin);e.currentTarget.reset();},<>{select("Compte joueur","ownerUserId",(adminData?.players||[]).map((p:any)=>p.id+"|"+p.discord_username).map((s:string)=>s))}{field("Prénom","firstName")}{field("Nom","lastName")}{select("Type","characterType",["student","staff"])}{select("Maison","house",["Gryffindor","Slytherin","Ravenclaw","Hufflepuff"])}{field("Fonction (personnel)","roleTitle")}{field("URL de l'avatar","avatarUrl","https://…")}{textArea("Biographie","biography")}</>)}</section><section className="admin-section"><h4>Personnages existants</h4>{(adminData?.characters||[]).map((c:any)=><div className="admin-row" key={c.id}><div><strong>{c.first_name} {c.last_name}</strong><small>{c.discord_username} · {c.house||c.role_title||c.character_type}</small></div></div>)}</section><section className="admin-section"><h4>Publier dans la Gazette</h4>{form("Enregistrer l'article",async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));await submit("admin-article",{title:d.title,summary:d.summary,body:d.body,category:d.category,publicationStatus:d.publicationStatus},loadAdmin);e.currentTarget.reset();},<>{field("Titre","title")}{field("Résumé","summary")}{textArea("Article","body")}{field("Rubrique","category","Actualité")}{select("Publication","publicationStatus",["draft","published"])}</>)}</section>{notice&&<p className="notice">{notice}</p>}</div>}
+ {screen==="phone"&&current&&<><div className="character-banner"><span>{nameOf(current)}</span><small>{current.house??current.role_title??current.roleTitle??"Hogwarts"}</small></div>
+ {active==="home"?<div className="screen-content"><section className="welcome-card"><div className="welcome-ornament">✦</div><p className="eyebrow">LE MONDE DES SORCIERS</p><h2>La magie<br/><em>dans votre poche.</em></h2><p className="welcome-copy">Ton courrier, tes rencontres et ta vie magique réunis dans un seul endroit.</p><div className="welcome-rule"><span/><WandSparkles size={15}/><span/></div></section><div className="section-heading"><div><p className="eyebrow">VOTRE QUOTIDIEN MAGIQUE</p><h3>Applications</h3></div><span className="app-count">06</span></div><div className="app-grid">{apps.map(a=>{const I=a.icon;return <button className="app-tile" key={a.id} onClick={()=>void loadApp(a.id)}><span className="app-icon"><I size={22}/></span><span className="app-label">{a.label}</span><span className="app-description">{a.desc}</span></button>})}</div><div className="parchment-note"><Sparkles size={16}/>Une nouvelle ère commence à Poudlard.</div></div>
+ :<div className="screen-content subpage"><button className="back-link" onClick={()=>setActive("home")}><ArrowLeft size={16}/> Retour</button><div className="section-heading"><div><p className="eyebrow">ESPACE PERSONNEL</p><h3>{pageTitle}</h3></div></div>{notice&&<p className="notice">{notice}</p>}
+ {active==="contacts"&&<><input className="search-field" placeholder="Rechercher un personnage…" value={search} onChange={e=>setSearch(e.target.value)}/><div className="character-list">{visibleContacts.map(c=><div className="character-card" key={c.id}><span className="character-avatar">{avatarOf(c)?<img src={avatarOf(c)!} alt=""/>:<Users/>}</span><span className="character-info"><strong>{nameOf(c)}</strong><small>{typeOf(c)==="student"?"Élève":c.role_title??"Personnel"}{c.house?" · "+c.house:""}</small></span></div>)}</div></>}
+ {active==="instagram"&&<>{form("Publier",async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));await submit("instagram-post",{caption:d.caption,imageUrl:d.imageUrl},async()=>{const x=await api("feed","GET",{}, {characterId:current.id});setFeed(x.posts||[])});e.currentTarget.reset();},<>{textArea("Votre publication","caption","Quoi de neuf ?")}{field("Image (URL)","imageUrl","https://…")}</>)}{feed.map(p=><article className="content-card" key={p.id}><strong>{p.first_name} {p.last_name}</strong>{p.image_url&&<img className="post-image" src={p.image_url} alt="Publication"/>}<p>{p.caption}</p><button className="inline-action" onClick={async()=>{await api("instagram-like","POST",{characterId:current.id,postId:p.id});const x=await api("feed","GET",{}, {characterId:current.id});setFeed(x.posts||[]);}}><Heart size={16}/> {p.likes} J'aime</button><small>{p.comments} commentaires</small></article>)}</>}
+ {active==="gazette"&&articles.map(a=><article className="content-card" key={a.id}><p className="eyebrow">{a.category}</p><h4>{a.title}</h4>{a.summary&&<p>{a.summary}</p>}<details><summary>Lire l'article</summary><p>{a.body}</p></details></article>)}
+ {active==="links"&&<>{form("Envoyer la demande",async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));await submit("link-request",{toCharacterId:d.toCharacterId,relationshipType:d.relationshipType,message:d.message},async()=>{const x=await api("links","GET",{}, {characterId:current.id});setLinks(x.requests||[])});e.currentTarget.reset();},<>{select("Personnage","toCharacterId",contacts.filter(c=>c.id!==current.id).map(c=>c.id+"|"+nameOf(c)))}{field("Type de lien","relationshipType","Amitié, rivalité…")}{textArea("Message","message")}</>)}{links.map(l=><article className="content-card" key={l.id}><strong>{l.from_character_id===current.id?"Vers "+l.to_first_name+" "+l.to_last_name:"De "+l.from_first_name+" "+l.from_last_name}</strong><p>{l.relationship_type} · {l.request_status}</p>{l.to_character_id===current.id&&l.request_status==="pending"&&<div className="action-row"><button onClick={async()=>{await api("link-response","POST",{characterId:current.id,requestId:l.id,status:"accepted"});void loadApp("links");}}>Accepter</button><button onClick={async()=>{await api("link-response","POST",{characterId:current.id,requestId:l.id,status:"declined"});void loadApp("links");}}>Refuser</button></div>}</article>)}</>}
+ {active==="agenda"&&<>{form("Ajouter à l'agenda",async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));await submit("agenda-event",{title:d.title,description:d.description,location:d.location,startsAt:d.startsAt,endsAt:d.endsAt||null,visibility:d.visibility,house:d.house||null},async()=>{const x=await api("agenda","GET",{}, {characterId:current.id});setEvents(x.events||[])});e.currentTarget.reset();},<>{field("Événement","title")}{textArea("Description","description")}{field("Lieu","location")}{field("Début","startsAt","","datetime-local")}{field("Fin","endsAt","","datetime-local")}{select("Visibilité","visibility",["all","students","staff","house","private"])}{select("Maison","house",["Gryffindor","Slytherin","Ravenclaw","Hufflepuff"])}</>)}{events.map(ev=><article className="content-card" key={ev.id}><strong>{ev.title}</strong><p>{new Date(ev.starts_at).toLocaleString("fr-FR")} · {ev.location}</p><p>{ev.description}</p></article>)}</>}
+ {active==="messages"&&<><div className="admin-section"><h4>Nouvelle conversation</h4>{form("Créer",async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));const r=await api("conversation","POST",{characterId:current.id,participantIds:[d.participantId],title:d.title||null});await loadApp("messages");setSelectedConversation(r.id);await openConversation(r.id);e.currentTarget.reset();},<>{select("Destinataire","participantId",contacts.filter(c=>c.id!==current.id).map(c=>c.id+"|"+nameOf(c)))}{field("Nom du groupe (facultatif)","title")}</>)}</div>{conversations.map(c=><button className="conversation-row" key={c.id} onClick={()=>void openConversation(c.id)}><strong>{c.title||c.participants||"Conversation"}</strong><small>{c.last_message||"Aucun message"}</small></button>)}{selectedConversation&&<><div className="message-list">{messages.map(m=><div className={m.sender_character_id===current.id?"message-bubble mine":"message-bubble"} key={m.id}><small>{m.first_name} {m.last_name}</small><p>{m.body}</p></div>)}</div>{form("Envoyer",async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));await submit("message",{conversationId:selectedConversation,body:d.body},()=>openConversation(selectedConversation));e.currentTarget.reset();},textArea("Message","body","Écrire un hibou…"))}</>}</>}
+ </div>}
+ <nav className="bottom-nav">{[{id:"home" as const,label:"Accueil",icon:Home},{id:"messages" as const,label:"Messages",icon:Mail},{id:"gazette" as const,label:"Gazette",icon:Newspaper},{id:"contacts" as const,label:"Contacts",icon:Users}].map(n=>{const I=n.icon;return <button key={n.id} className={active===n.id?"nav-item active":"nav-item"} onClick={()=>void loadApp(n.id)}><I size={18}/><span>{n.label}</span></button>})}</nav></>}
+ <div className="home-indicator"/></section><footer className="outside-caption">HOGWARTS • A NEW ERA</footer></main>;
+}
 export default App;
