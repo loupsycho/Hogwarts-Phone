@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const avatar = user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : null;
     const session = createActivitySession({ id: user.id, username, avatar });
     setActivitySessionCookie(res, session);
-    return res.status(200).json({ access_token: tokenData.access_token });
+    return res.status(200).json({ access_token: tokenData.access_token, session_token: session });
   } catch (error) {
     console.error("Hogwarts Phone Activity authentication failed:", error);
     return res.status(500).json({ error: "La connexion Discord a échoué." });
