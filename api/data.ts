@@ -45,11 +45,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === "GET") {
       if (action === "contacts") {
-        const r = await databasePool.query("SELECT id, first_name, last_name, character_type, house, role_title, avatar_url FROM characters ORDER BY character_type, house NULLS LAST, first_name");
+        const r = await databasePool.query("SELECT c.id, c.first_name, c.last_name, c.character_type, c.house, c.role_title, c.avatar_url FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE u.account_status='approved' ORDER BY c.character_type, c.house NULLS LAST, c.first_name");
         return send(res, 200, { characters: r.rows });
       }
       if (action === "feed") {
-        const r = await databasePool.query("SELECT p.id,p.character_id,p.caption,p.image_url,p.created_at,c.first_name,c.last_name,c.avatar_url,c.house,(SELECT count(*) FROM instagram_likes l WHERE l.post_id=p.id) AS likes,(SELECT count(*) FROM instagram_comments cm WHERE cm.post_id=p.id) AS comments, EXISTS(SELECT 1 FROM instagram_likes l WHERE l.post_id=p.id AND l.character_id=$1) AS liked FROM instagram_posts p JOIN characters c ON c.id=p.character_id ORDER BY p.created_at DESC LIMIT 100", [activeCharacter || null]);
+        const r = await databasePool.query("SELECT p.id,p.character_id,p.caption,p.image_url,p.created_at,c.first_name,c.last_name,c.avatar_url,c.house,(SELECT count(*) FROM instagram_likes l WHERE l.post_id=p.id) AS likes,(SELECT count(*) FROM instagram_comments cm WHERE cm.post_id=p.id) AS comments, (SELECT COALESCE(json_agg(json_build_object('id',cm.id,'body',cm.body,'characterName',cc.first_name || ' ' || cc.last_name) ORDER BY cm.created_at), '[]'::json) FROM instagram_comments cm JOIN characters cc ON cc.id=cm.character_id WHERE cm.post_id=p.id) AS comment_list, EXISTS(SELECT 1 FROM instagram_likes l WHERE l.post_id=p.id AND l.character_id=$1) AS liked FROM instagram_posts p JOIN characters c ON c.id=p.character_id ORDER BY p.created_at DESC LIMIT 100", [activeCharacter || null]);
         return send(res, 200, { posts: r.rows });
       }
       if (action === "gazette") {
@@ -95,7 +95,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const r = await databasePool.query("INSERT INTO instagram_posts(character_id,caption,image_url) VALUES($1,$2,$3) RETURNING id", [activeCharacter, body.caption || null, body.imageUrl || null]);
         return send(res, 201, { id: r.rows[0].id });
       }
-      if (action === "instagram-like") {
+      if (action === "instagram-unlike") {\n        if (!activeCharacter || !body.postId) return bad(res, "Données manquantes.");\n        await databasePool.query("DELETE FROM instagram_likes WHERE post_id=$1 AND character_id=$2", [body.postId, activeCharacter]);\n        return send(res, 200, { ok: true });\n      }\n      if (action === "instagram-like") {
         if (!activeCharacter || !body.postId) return bad(res, "Données manquantes.");
         await databasePool.query("INSERT INTO instagram_likes(post_id,character_id) VALUES($1,$2) ON CONFLICT DO NOTHING", [body.postId, activeCharacter]);
         return send(res, 200, { ok: true });
