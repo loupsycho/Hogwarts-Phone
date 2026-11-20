@@ -104,6 +104,7 @@ function App() {
         provider: 'discord',
         callbackURL: window.location.origin,
         errorCallbackURL: window.location.origin,
+        disableRedirect: true,
       });
       if (result.error) {
         const details = result.error as unknown as Record<string, unknown>;
@@ -112,14 +113,16 @@ function App() {
           typeof details.code === 'string' ? 'Code : ' + details.code : '',
           typeof details.status === 'number' ? 'HTTP : ' + details.status : '',
         ].filter(Boolean).join(' · ');
-        setAuthError(diagnostic || 'Erreur de connexion : la réponse du serveur ne contient aucun détail. Il faudra consulter les journaux de la fonction API.');
+        setAuthError(diagnostic || 'Le serveur a refusé de démarrer la connexion Discord.');
         setIsSigningIn(false);
         return;
       }
-      if (result.data?.url && !result.data.redirect) {
+      if (result.data?.url) {
         window.location.assign(result.data.url);
         return;
       }
+      setAuthError('Le serveur a répondu, mais n’a fourni aucune adresse de connexion Discord. La réponse reçue est incomplète.');
+      setIsSigningIn(false);
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'La connexion Discord a échoué. Réessaie dans quelques instants.');
       setIsSigningIn(false);
