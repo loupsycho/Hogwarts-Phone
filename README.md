@@ -39,3 +39,12 @@ Vérifier le SQL généré avant de l'appliquer à Neon. Ne pas lancer de migrat
 npm install
 npm run dev
 \`\`\`
+
+
+## Profils, applications et médias
+
+La migration `migrations/003_media_and_character_details.sql` ajoute l'orientation sexuelle verrouillée après validation, les références de portraits et les pièces jointes aux publications et messages. Elle crée également `media_assets`, qui conserve les fichiers importés par les joueurs dans PostgreSQL.
+
+Les fichiers importés sont limités à 10 Mo et aux images JPEG/PNG/WebP/GIF ainsi qu'aux vidéos MP4/WebM. L'API `/api/media` vérifie le compte Discord et la propriété du personnage avant chaque importation. Les médias publiés sont ensuite accessibles aux autres comptes autorisés.
+
+L'orientation sexuelle est demandée une seule fois lors de la première ouverture du téléphone d'un personnage. Une fois validée, elle est verrouillée et affichée dans Contacts, Instagram et les demandes de liens.
