@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_user_id uuid NOT NULL REFERENCES public.app_users(id) ON DELETE CASCADE,
   character_id uuid REFERENCES public.characters(id) ON DELETE SET NULL,
-  media_kind text NOT NULL CHECK (media_kind IN ('avatar','instagram','message')),
+  media_kind text NOT NULL CHECK (media_kind IN ('avatar','instagram','message','gallery')),
   mime_type text NOT NULL,
   file_name text NOT NULL,
   byte_size integer NOT NULL CHECK (byte_size > 0 AND byte_size <= 12582912),
