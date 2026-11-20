@@ -23,7 +23,11 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL ?? appUrl,
   secret: process.env.BETTER_AUTH_SECRET,
   database: databasePool,
-  trustedOrigins: [appUrl, vercelOrigin].filter((origin): origin is string => Boolean(origin)),
+  trustedOrigins: [
+    appUrl,
+    vercelOrigin,
+    "https://hogwarts-phone-git-rebuild-foundation-lou-d160.vercel.app",
+  ].filter((origin): origin is string => Boolean(origin)),
   socialProviders: {
     discord: {
       clientId: process.env.DISCORD_CLIENT_ID!,
