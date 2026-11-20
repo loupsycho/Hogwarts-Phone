@@ -1,8 +1,8 @@
 import { FormEvent, ReactNode, useEffect, useState } from "react";
 import { DiscordSDK } from "@discord/embedded-app-sdk";
+import { ArrowLeft, CalendarDays, Contact, Heart, HeartHandshake, Home, Instagram, LogOut, Mail, Newspaper, Plus, Send, Shield, Sparkles, Users, WandSparkles } from "lucide-react";
 
 const discordSdk = new DiscordSDK("1573343083179942080");
-import { ArrowLeft, CalendarDays, Contact, Heart, HeartHandshake, Home, Instagram, LogOut, Mail, Newspaper, Plus, Send, Shield, Sparkles, Users, WandSparkles } from "lucide-react";
 
 type Character = { id:string; first_name?:string; last_name?:string; firstName?:string; lastName?:string; character_type?:string; characterType?:string; house:string|null; role_title?:string|null; roleTitle?:string|null; avatar_url?:string|null; avatarUrl?:string|null; owner_user_id?:string; discord_username?:string };
 type AppKey = "home"|"messages"|"instagram"|"gazette"|"contacts"|"links"|"agenda";
@@ -17,9 +17,10 @@ const apps = [
 const nameOf=(c:Character)=>[c.first_name??c.firstName,c.last_name??c.lastName].filter(Boolean).join(" ");
 const typeOf=(c:Character)=>c.character_type??c.characterType??"student";
 const avatarOf=(c:Character)=>c.avatar_url??c.avatarUrl;
+function sessionHeaders():Record<string,string>{const token=localStorage.getItem("hogwarts_session");return token?{Authorization:"Bearer "+token}:{};}
 async function api(action:string, method="GET", data:Record<string,unknown>={}, query:Record<string,string>={}) {
  const params=new URLSearchParams({action,...query});
- const response=await fetch("/api/data?"+params.toString(),{method,credentials:"include",headers:{"Content-Type":"application/json"},...(method==="GET"?{}:{body:JSON.stringify({...data,action})})});
+ const response=await fetch("/api/data?"+params.toString(),{method,credentials:"include",headers:{"Content-Type":"application/json",...sessionHeaders()},...(method==="GET"?{}:{body:JSON.stringify({...data,action})})});
  const result=await response.json().catch(()=>({}));
  if(!response.ok) throw new Error(result.error||"Une erreur est survenue.");
  return result;
@@ -71,7 +72,7 @@ function App(){
   }catch(e){setNotice(e instanceof Error?e.message:"Chargement impossible.");}
  }
  async function choose(c:Character){setCurrent(c);setScreen("phone");setActive("home");try{const d=await api("contacts");setContacts(d.characters||[]);}catch{}}
- async function signOut(){await fetch("/api/auth/logout",{method:"POST",credentials:"include"});setCurrent(null);setCharacters([]);setIsAdmin(false);setScreen("signed-out");}
+ async function signOut(){await fetch("/api/auth/logout",{method:"POST",credentials:"include",headers:sessionHeaders()});localStorage.removeItem("hogwarts_session");setCurrent(null);setCharacters([]);setIsAdmin(false);setScreen("signed-out");}
  async function signIn(){
   setBusy(true);setError("");
   try{
@@ -88,7 +89,8 @@ function App(){
     body:JSON.stringify({code}),
    });
    const result=await response.json().catch(()=>({}));
-   if(!response.ok||!result.access_token)throw new Error(result.error||"Impossible de terminer la connexion Discord.");
+   if(!response.ok||!result.access_token||!result.session_token)throw new Error(result.error||"Impossible de terminer la connexion Discord.");
+   localStorage.setItem("hogwarts_session",result.session_token);
    const authenticated=await discordSdk.commands.authenticate({access_token:result.access_token});
    if(!authenticated)throw new Error("Discord n'a pas confirmé ton identité.");
    await loadAccount();
