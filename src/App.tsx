@@ -1,5 +1,7 @@
 import { FormEvent, ReactNode, useEffect, useState } from "react";
-import { authClient } from "./lib/auth-client";
+import { DiscordSDK } from "@discord/embedded-app-sdk";
+
+const discordSdk = new DiscordSDK("1573343083179942080");
 import { ArrowLeft, CalendarDays, Contact, Heart, HeartHandshake, Home, Instagram, LogOut, Mail, Newspaper, Plus, Send, Shield, Sparkles, Users, WandSparkles } from "lucide-react";
 
 type Character = { id:string; first_name?:string; last_name?:string; firstName?:string; lastName?:string; character_type?:string; characterType?:string; house:string|null; role_title?:string|null; roleTitle?:string|null; avatar_url?:string|null; avatarUrl?:string|null; owner_user_id?:string; discord_username?:string };
@@ -69,8 +71,29 @@ function App(){
   }catch(e){setNotice(e instanceof Error?e.message:"Chargement impossible.");}
  }
  async function choose(c:Character){setCurrent(c);setScreen("phone");setActive("home");try{const d=await api("contacts");setContacts(d.characters||[]);}catch{}}
- async function signOut(){await authClient.signOut();setCurrent(null);setCharacters([]);setIsAdmin(false);setScreen("signed-out");}
- async function signIn(){setBusy(true);setError("");try{const r=await fetch("/api/auth/sign-in/social",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({provider:"discord",callbackURL:"/",errorCallbackURL:"/"})});const raw=await r.text();let d:any={};try{d=raw?JSON.parse(raw):{};}catch{throw new Error(`Le serveur de connexion a répondu avec une page non valide (HTTP ${r.status}). Vérifie le déploiement de l’authentification.`);}if(!r.ok||!d.url)throw new Error(d.message||d.error||`Connexion Discord impossible (HTTP ${r.status}).`);location.assign(d.url);}catch(e){setError(e instanceof Error?e.message:"Connexion impossible.");setBusy(false);}}
+ async function signOut(){await fetch("/api/auth/logout",{method:"POST",credentials:"include"});setCurrent(null);setCharacters([]);setIsAdmin(false);setScreen("signed-out");}
+ async function signIn(){
+  setBusy(true);setError("");
+  try{
+   await discordSdk.ready();
+   const {code}=await discordSdk.commands.authorize({
+    client_id:"1573343083179942080",
+    response_type:"code",
+    state:crypto.randomUUID(),
+    prompt:"none",
+    scope:["identify","email"],
+   });
+   const response=await fetch("/api/token",{
+    method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({code}),
+   });
+   const result=await response.json().catch(()=>({}));
+   if(!response.ok||!result.access_token)throw new Error(result.error||"Impossible de terminer la connexion Discord.");
+   const authenticated=await discordSdk.commands.authenticate({access_token:result.access_token});
+   if(!authenticated)throw new Error("Discord n'a pas confirmé ton identité.");
+   await loadAccount();
+  }catch(e){setError(e instanceof Error?e.message:"Connexion Discord impossible.");setBusy(false);}
+ }
  async function submit(action:string,data:Record<string,unknown>,refresh?:()=>Promise<void>){setBusy(true);setNotice("");try{await api(action,"POST",{...data,characterId:current?.id});setNotice("C'est enregistré.");if(refresh)await refresh();}catch(e){setNotice(e instanceof Error?e.message:"Enregistrement impossible.");}finally{setBusy(false);}}
  async function openConversation(id:string){setSelectedConversation(id);try{const d=await api("messages","GET",{}, {characterId:current!.id,conversationId:id});setMessages(d.messages||[]);}catch(e){setNotice(e instanceof Error?e.message:"Chargement impossible.");}}
  const visibleContacts=contacts.filter(c=>nameOf(c).toLowerCase().includes(search.toLowerCase()));
