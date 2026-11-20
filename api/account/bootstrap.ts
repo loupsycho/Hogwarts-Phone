@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const discord = getActivitySession(req.headers.cookie);
+    const discord = getActivitySession(req.headers.cookie, req.headers.authorization);
     if (!discord) return res.status(401).json({ error: "Not signed in" });
 
     const adminResult = await databasePool.query(
