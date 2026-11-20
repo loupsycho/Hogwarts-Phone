@@ -7,4 +7,4 @@ export const config = {
   },
 };
 
-export default toNodeHandler(auth.handler);
+export default toNodeHandler(auth);
