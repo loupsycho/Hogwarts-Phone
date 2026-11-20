@@ -5,7 +5,7 @@ import { getActivitySession } from "../src/server/activity-session.js";
 export const config = { api: { bodyParser: { sizeLimit: "16mb" } } };
 
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "video/mp4", "video/webm"]);
-const maxBytes = 12 * 1024 * 1024;
+const maxBytes = 10 * 1024 * 1024;
 
 function reply(res: VercelResponse, status: number, value: unknown) {
   return res.status(status).json(value);
@@ -72,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!owned.rowCount && !Boolean(admin.rows[0]?.yes)) return reply(res, 403, { error: "Personnage inaccessible." });
     if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64) || !base64) return reply(res, 400, { error: "Fichier invalide." });
     const bytes = Buffer.from(base64, "base64");
-    if (!bytes.length || bytes.length > maxBytes) return reply(res, 413, { error: "Le fichier doit faire 12 Mo maximum." });
+    if (!bytes.length || bytes.length > maxBytes) return reply(res, 413, { error: "Le fichier doit faire 10 Mo maximum." });
 
     const inserted = await databasePool.query(
       "INSERT INTO media_assets(owner_user_id,character_id,media_kind,mime_type,file_name,byte_size,content) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id",
