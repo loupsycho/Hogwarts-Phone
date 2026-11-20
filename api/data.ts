@@ -72,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return send(res, 200, { messages: r.rows });
       }
       if (action === "agenda") {
-        const r = await databasePool.query("SELECT e.* FROM agenda_events e WHERE e.visibility='all' OR (e.visibility='students' AND EXISTS(SELECT 1 FROM characters c WHERE c.id=$1 AND c.character_type='student')) OR (e.visibility='staff' AND EXISTS(SELECT 1 FROM characters c WHERE c.id=$1 AND c.character_type='staff')) OR (e.visibility='house' AND EXISTS(SELECT 1 FROM characters c WHERE c.id=$1 AND c.house=e.house)) OR e.created_by_character_id=$1 ORDER BY e.starts_at", [activeCharacter || null]);
+        const r = await databasePool.query("SELECT e.*, (SELECT ep.response FROM agenda_event_participants ep WHERE ep.event_id=e.id AND ep.character_id=$1) AS my_response FROM agenda_events e WHERE e.visibility='all' OR (e.visibility='students' AND EXISTS(SELECT 1 FROM characters c WHERE c.id=$1 AND c.character_type='student')) OR (e.visibility='staff' AND EXISTS(SELECT 1 FROM characters c WHERE c.id=$1 AND c.character_type='staff')) OR (e.visibility='house' AND EXISTS(SELECT 1 FROM characters c WHERE c.id=$1 AND c.house=e.house)) OR e.created_by_character_id=$1 OR EXISTS(SELECT 1 FROM agenda_event_participants ep WHERE ep.event_id=e.id AND ep.character_id=$1) ORDER BY e.starts_at", [activeCharacter || null]);
         return send(res, 200, { events: r.rows });
       }
       if (action === "admin") {
@@ -136,6 +136,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const r = await databasePool.query("INSERT INTO messages(conversation_id,sender_character_id,body) VALUES($1,$2,$3) RETURNING id", [body.conversationId, activeCharacter, String(body.body).trim()]);
         await databasePool.query("UPDATE conversations SET updated_at=now() WHERE id=$1", [body.conversationId]);
         return send(res, 201, { id: r.rows[0].id });
+      }
+      if (action === "agenda-invite") {
+        if (!body.eventId || !Array.isArray(body.participantIds) || !body.participantIds.length) return bad(res, "Choisis au moins un participant.");
+        const event = await databasePool.query("SELECT id,created_by_character_id FROM agenda_events WHERE id=$1", [body.eventId]);
+        if (!event.rowCount || (!ctx.isAdmin && event.rows[0].created_by_character_id !== activeCharacter)) return send(res, 403, { error: "Tu ne peux pas inviter à cet événement." });
+        const ids = [...new Set(body.participantIds.map(String))];
+        await databasePool.query("INSERT INTO agenda_event_participants(event_id,character_id,response) SELECT $1, unnest($2::uuid[]), 'invited' ON CONFLICT(event_id,character_id) DO NOTHING", [body.eventId, ids]);
+        return send(res, 201, { ok: true });
+      }
+      if (action === "agenda-response") {
+        if (!activeCharacter || !body.eventId || !["accepted","declined"].includes(body.response)) return bad(res, "Réponse invalide.");
+        const r = await databasePool.query("UPDATE agenda_event_participants SET response=$1 WHERE event_id=$2 AND character_id=$3 RETURNING event_id", [body.response,body.eventId,activeCharacter]);
+        return send(res, r.rowCount ? 200 : 404, { ok: Boolean(r.rowCount) });
       }
       if (action === "agenda-event") {
         if (!body.title || !body.startsAt) return bad(res, "Titre et date requis.");
