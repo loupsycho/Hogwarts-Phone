@@ -31,6 +31,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === "GET") {
+      if (req.query.list === "1") {
+        const characterId = String(req.query.characterId ?? "");
+        const owned = await databasePool.query("SELECT id FROM characters WHERE id=$1 AND owner_user_id=$2", [characterId, user?.id]);
+        if (!owned.rowCount && !Boolean(admin.rows[0]?.yes)) return reply(res, 403, { error: "Personnage inaccessible." });
+        const items = await databasePool.query("SELECT id,media_kind,mime_type,file_name,byte_size,created_at FROM media_assets WHERE character_id=$1 ORDER BY created_at DESC LIMIT 200", [characterId]);
+        return reply(res, 200, { media: items.rows.map((item: any) => ({ ...item, url: "/api/media?id=" + encodeURIComponent(item.id) })) });
+      }
       const id = String(req.query.id ?? "");
       if (!id) return reply(res, 400, { error: "Média introuvable." });
       const media = await databasePool.query(
@@ -54,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const mimeType = String(body.mimeType ?? "");
     const fileName = String(body.fileName ?? "media");
     const base64 = String(body.data ?? "");
-    if (!characterId || !["avatar", "instagram", "message"].includes(kind)) {
+    if (!characterId || !["avatar", "instagram", "message", "gallery"].includes(kind)) {
       return reply(res, 400, { error: "Informations du média incomplètes." });
     }
     if (!allowedTypes.has(mimeType)) return reply(res, 400, { error: "Format non pris en charge. Utilise une image ou une vidéo MP4/WebM." });
