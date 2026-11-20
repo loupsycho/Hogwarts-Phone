@@ -59,6 +59,7 @@ function App() {
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [activeApp, setActiveApp] = useState<AppKey>('home');
   const [authError, setAuthError] = useState('');
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   const loadPlayer = async () => {
     setAuthScreen('checking');
@@ -94,14 +95,27 @@ function App() {
   }, []);
 
   const signIn = async () => {
+    if (isSigningIn) return;
     setAuthError('');
+    setIsSigningIn(true);
     try {
-      await authClient.signIn.social({
+      const result = await authClient.signIn.social({
         provider: 'discord',
         callbackURL: window.location.origin,
+        errorCallbackURL: window.location.origin,
       });
-    } catch {
-      setAuthError('La connexion Discord a échoué. Vérifie ta connexion puis réessaie.');
+      if (result.error) {
+        setAuthError(result.error.message || 'Discord a refusé la demande de connexion. Réessaie dans un instant.');
+        setIsSigningIn(false);
+        return;
+      }
+      if (result.data?.url && !result.data.redirect) {
+        window.location.assign(result.data.url);
+        return;
+      }
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'La connexion Discord a échoué. Réessaie dans quelques instants.');
+      setIsSigningIn(false);
     }
   };
 
@@ -171,8 +185,8 @@ function App() {
               <p className="eyebrow">VOTRE TÉLÉPHONE MAGIQUE</p>
               <h2>Bienvenue à<br /><em>Hogwarts Phone</em></h2>
               <p>Connecte-toi avec ton compte Discord pour retrouver tes personnages et accéder à leurs applications.</p>
-              <button className="primary-action discord-action" onClick={signIn}>
-                <span className="discord-mark">◉</span> Continuer avec Discord
+              <button className="primary-action discord-action" onClick={signIn} disabled={isSigningIn}>
+                {isSigningIn ? 'Ouverture de Discord…' : 'Continuer avec Discord'}
               </button>
               {authError && <p className="auth-error">{authError}</p>}
               <p className="auth-footnote">L’accès est soumis à la validation de ton compte par l’administration.</p>
