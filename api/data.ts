@@ -167,6 +167,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (action === "agenda-response") {
         if (!activeCharacter || !body.eventId || !["accepted","declined"].includes(body.response)) return bad(res, "Réponse invalide.");
         const r = await databasePool.query("UPDATE agenda_event_participants SET response=$1 WHERE event_id=$2 AND character_id=$3 RETURNING event_id", [body.response,body.eventId,activeCharacter]);
+        if (r.rowCount) { const owner=await databasePool.query("SELECT created_by_character_id,title FROM agenda_events WHERE id=$1",[body.eventId]); if(owner.rowCount&&owner.rows[0].created_by_character_id&&owner.rows[0].created_by_character_id!==activeCharacter) await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'agenda_response','Réponse à votre invitation',$2,'agenda_event',$3)",[owner.rows[0].created_by_character_id,body.response==="accepted"?"Un personnage a accepté votre invitation.":"Un personnage a décliné votre invitation.",body.eventId]); }
         return send(res, r.rowCount ? 200 : 404, { ok: Boolean(r.rowCount) });
       }
       if (action === "notification-read") {
