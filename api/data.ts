@@ -156,8 +156,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       if (action === "admin-character") {
         if (!ctx.isAdmin) return send(res, 403, { error: "Réservé à l'administration." });
-        if (!body.ownerUserId || !body.firstName || !body.lastName || !["student","staff"].includes(body.characterType)) return bad(res, "Fiche personnage incomplète.");
-        const r = await databasePool.query("INSERT INTO characters(owner_user_id,first_name,last_name,character_type,house,role_title,avatar_url,biography) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id", [body.ownerUserId,body.firstName,body.lastName,body.characterType,body.house||null,body.roleTitle||null,body.avatarUrl||null,body.biography||null]);
+        if (!body.ownerUserId || !body.firstName || !body.lastName || !["student","staff"].includes(body.characterType) || !["OC","Saga"].includes(body.characterKind)) return bad(res, "Fiche personnage incomplète.");
+        const student = body.characterType === "student";
+        const age = student ? 17 : Number(body.age);
+        if (!student && (!Number.isInteger(age) || age < 17 || age > 100)) return bad(res, "L'âge de l'employé est invalide.");
+        if (student && !["Gryffindor","Slytherin","Ravenclaw","Hufflepuff"].includes(body.house)) return bad(res, "Choisis une maison.");
+        const courses = Array.isArray(body.optionalCourses) ? body.optionalCourses.map(String) : [];
+        const r = await databasePool.query(
+          "INSERT INTO characters(owner_user_id,first_name,last_name,character_type,house,role_title,age,character_kind,quidditch_position,optional_courses,important_role,house_responsibility) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id",
+          [body.ownerUserId,body.firstName,body.lastName,body.characterType,student?body.house:null,student?null:(body.roleTitle||"Autre"),age,body.characterKind,student?(body.quidditchPosition||"Pas de Quidditch"):null,student?courses:[],student?(body.importantRole||"Aucun"):null,student?null:(body.houseResponsibility||"Non")]
+        );
         return send(res, 201, { id: r.rows[0].id });
       }
       if (action === "admin-article") {
@@ -170,11 +178,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return bad(res, "Action POST inconnue.");
     }
 
+    if (req.method === "DELETE") {
+      if (!ctx.isAdmin) return send(res, 403, { error: "Réservé à l'administration." });
+      if (action === "admin-character" && req.query.characterId) {
+        const r = await databasePool.query("DELETE FROM characters WHERE id=$1 RETURNING id", [String(req.query.characterId)]);
+        return send(res, r.rowCount ? 200 : 404, { ok: Boolean(r.rowCount) });
+      }
+      return bad(res, "Action DELETE inconnue.");
+    }
+
     if (req.method === "PATCH") {
       if (!ctx.isAdmin) return send(res, 403, { error: "Réservé à l'administration." });
       if (action === "admin-article-status" && body.articleId && ["draft","published","archived"].includes(body.status)) {
         await databasePool.query("UPDATE gazette_articles SET publication_status=$1,published_at=CASE WHEN $1='published' THEN COALESCE(published_at,now()) ELSE published_at END,updated_at=now() WHERE id=$2", [body.status,body.articleId]);
         return send(res, 200, { ok: true });
+      }
+      if (action === "admin-character" && body.characterId) {
+        if (!body.firstName || !body.lastName || !["student","staff"].includes(body.characterType) || !["OC","Saga"].includes(body.characterKind)) return bad(res, "Fiche personnage incomplète.");
+        const student = body.characterType === "student";
+        const age = student ? 17 : Number(body.age);
+        if (!student && (!Number.isInteger(age) || age < 17 || age > 100)) return bad(res, "L'âge de l'employé est invalide.");
+        const courses = Array.isArray(body.optionalCourses) ? body.optionalCourses.map(String) : [];
+        const r = await databasePool.query(
+          "UPDATE characters SET first_name=$1,last_name=$2,character_type=$3,house=$4,role_title=$5,age=$6,character_kind=$7,quidditch_position=$8,optional_courses=$9,important_role=$10,house_responsibility=$11,updated_at=now() WHERE id=$12 RETURNING id",
+          [body.firstName,body.lastName,body.characterType,student?body.house:null,student?null:(body.roleTitle||"Autre"),age,body.characterKind,student?(body.quidditchPosition||"Pas de Quidditch"):null,student?courses:[],student?(body.importantRole||"Aucun"):null,student?null:(body.houseResponsibility||"Non"),body.characterId]
+        );
+        return send(res, r.rowCount ? 200 : 404, { ok: Boolean(r.rowCount) });
       }
       return bad(res, "Action PATCH inconnue.");
     }
