@@ -257,3 +257,47 @@ button { font: inherit; }
   .auth-content { padding: 24px 22px; }
   .auth-card { box-shadow: none; }
 }
+
+
+/* Full-screen app layout (same viewport behavior as Sterling Campus) */
+html, body, #root {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+.page-shell {
+  width: 100%;
+  height: 100dvh;
+  min-height: 100dvh;
+  padding: 0;
+  align-items: stretch;
+  justify-content: stretch;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 8%, #34202a 0%, transparent 42%),
+    radial-gradient(ellipse at 10% 85%, #172c2b 0%, transparent 36%),
+    #090b10;
+}
+
+.phone-frame {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  min-height: 100dvh;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.outside-caption {
+  display: none;
+}
+
+@supports not (height: 100dvh) {
+  .page-shell, .phone-frame {
+    height: 100vh;
+    min-height: 100vh;
+  }
+}
