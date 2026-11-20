@@ -100,21 +100,25 @@ function App() {
     setAuthError('');
     setIsSigningIn(true);
     try {
-      const result = await authClient.signIn.social({
-        provider: 'discord',
-        callbackURL: window.location.origin,
-        errorCallbackURL: window.location.origin,
+      const response = await fetch('/api/auth/sign-in/social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          provider: 'discord',
+          callbackURL: window.location.origin,
+          errorCallbackURL: window.location.origin,
+        }),
       });
-      if (result.error) {
-        const details = result.error as unknown as Record<string, unknown>;
-        const diagnostic = [
-          typeof details.message === 'string' ? details.message : '',
-          typeof details.code === 'string' ? 'Code : ' + details.code : '',
-          typeof details.status === 'number' ? 'HTTP : ' + details.status : '',
-        ].filter(Boolean).join(' · ');
-        throw new Error(diagnostic || 'Le serveur a refusé de démarrer la connexion Discord.');
+      const data = await response.json().catch(() => ({})) as {
+        url?: string;
+        message?: string;
+        error?: string;
+      };
+      if (!response.ok || !data.url) {
+        throw new Error(data.message || data.error || `Erreur du serveur de connexion (HTTP ${response.status}).`);
       }
-      // Better Auth gère lui-même la redirection OAuth.
+      window.location.assign(data.url);
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'La connexion Discord a échoué.');
       setIsSigningIn(false);
@@ -187,7 +191,7 @@ function App() {
               <p className="eyebrow">VOTRE TÉLÉPHONE MAGIQUE</p>
               <h2>Bienvenue à<br /><em>Hogwarts Phone</em></h2>
               <p>Connecte-toi avec ton compte Discord pour retrouver tes personnages et accéder à leurs applications.</p>
-              <button className="primary-action discord-action" onClick={signIn} disabled={isSigningIn}>
+              <button type="button" className="primary-action discord-action" onClick={() => { void signIn(); }} disabled={isSigningIn}>
                 {isSigningIn ? 'Ouverture de Discord…' : 'Continuer avec Discord'}
               </button>
               {authError && <p className="auth-error">{authError}</p>}
