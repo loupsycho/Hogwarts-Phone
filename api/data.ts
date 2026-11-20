@@ -1,24 +1,15 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { fromNodeHeaders } from "better-auth/node";
-import { auth, databasePool } from "../src/server/auth.js";
+import { databasePool } from "../src/server/auth.js";
+import { getActivitySession } from "../src/server/activity-session.js";
 
 type Session = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
 
 async function context(req: VercelRequest) {
-  const session = await auth.api.getSession({ headers: fromNodeHeaders(req.headers) });
-  if (!session) return null;
-  const linked = await databasePool.query(
-    'SELECT a."accountId" AS discord_id, u.name, u.image FROM "account" a JOIN "user" u ON u.id=a."userId" WHERE a."userId"=$1 AND a."providerId"=$2 LIMIT 1',
-    [session.user.id, "discord"],
-  );
-  if (!linked.rowCount) return null;
-  const discord = linked.rows[0];
-  const admin = await databasePool.query("SELECT EXISTS(SELECT 1 FROM app_admins WHERE discord_user_id=$1) AS yes", [discord.discord_id]);
-  const player = await databasePool.query(
-    "SELECT id, account_status FROM app_users WHERE discord_user_id=$1",
-    [discord.discord_id],
-  );
-  return { session, discord, isAdmin: Boolean(admin.rows[0]?.yes), player: player.rows[0] ?? null };
+  const discord = getActivitySession(req.headers.cookie);
+  if (!discord) return null;
+  const admin = await databasePool.query("SELECT EXISTS(SELECT 1 FROM app_admins WHERE discord_user_id=$1) AS yes", [discord.id]);
+  const player = await databasePool.query("SELECT id, account_status FROM app_users WHERE discord_user_id=$1", [discord.id]);
+  return { discord, isAdmin: Boolean(admin.rows[0]?.yes), player: player.rows[0] ?? null };
 }
 
 function send(res: VercelResponse, status: number, data: unknown) {
