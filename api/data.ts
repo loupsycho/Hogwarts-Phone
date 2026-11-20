@@ -5,7 +5,7 @@ import { getActivitySession } from "../src/server/activity-session.js";
 type Session = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
 
 async function context(req: VercelRequest) {
-  const discord = getActivitySession(req.headers.cookie);
+  const discord = getActivitySession(req.headers.cookie, req.headers.authorization);
   if (!discord) return null;
   const admin = await databasePool.query("SELECT EXISTS(SELECT 1 FROM app_admins WHERE discord_user_id=$1) AS yes", [discord.id]);
   const player = await databasePool.query("SELECT id, account_status FROM app_users WHERE discord_user_id=$1", [discord.id]);
