@@ -515,3 +515,17 @@ button {
 .comment-form{display:flex;gap:6px;margin-top:10px}.comment-form input{flex:1;min-width:0;border:1px solid #c5a56b40;border-radius:6px;background:#111719;color:#f1e5d0;padding:9px;font:11px 'DM Sans',sans-serif}.comment-form button{width:38px;border:1px solid #c5a56b66;border-radius:6px;background:#c5a56b16;color:#e5cd98}.post-comment{font-size:10px!important;margin:6px 0!important;padding-top:5px;border-top:1px solid #c5a56b1d}.post-comment strong{font:600 12px 'Cormorant Garamond',serif;color:#dfc58f}
 
 .contact-group{margin:15px 0}.contact-group h4{font:600 19px 'Cormorant Garamond',serif;color:#d8bd84;border-bottom:1px solid #c5a56b3d;padding:0 2px 7px;margin:0 0 7px}.contact-group .character-card{margin:4px 0}
+
+/* Character administration folders and profile fields */
+.player-folder{margin:8px 0;border:1px solid #c5a56b35;border-radius:8px;overflow:hidden;background:#ffffff05}
+.folder-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border:0;background:#c5a56b12;color:#ead9b8;text-align:left;font:600 15px 'Cormorant Garamond',serif;cursor:pointer}
+.folder-toggle small{font:10px 'DM Sans',sans-serif;color:#c5a56b}
+.character-admin-row{padding:12px;border-top:1px solid #c5a56b20}
+.character-admin-row .action-row{flex:0 0 auto;margin:0}
+.character-admin-row .action-row button{padding:7px 9px}
+.field-hint{font-size:9px;color:#a99b85;line-height:1.4}
+.multi-choice{display:flex;flex-direction:column;gap:8px;margin:0;padding:10px;border:1px solid #c5a56b40;border-radius:7px}
+.multi-choice legend{padding:0 5px;color:#d5bd8a;font-size:10px;letter-spacing:.04em}
+.multi-choice label{display:flex;align-items:center;gap:9px;color:#e8ddc8;font-size:11px}
+.multi-choice input{width:16px;height:16px;accent-color:#c5a56b}
+@media(max-width:480px){.character-admin-row{flex-direction:column;align-items:stretch}.character-admin-row .action-row button{flex:1;justify-content:center}}
