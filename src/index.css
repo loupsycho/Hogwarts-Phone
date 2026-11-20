@@ -511,3 +511,5 @@ button {
 .message-bubble small{font-size:9px;color:#c5a56b}
 .message-bubble p{font-size:12px;line-height:1.5;margin:4px 0 0;white-space:pre-wrap}
 @media(max-width:480px){.screen-content{padding-bottom:22px}.admin-row{align-items:flex-start}.admin-row select{max-width:118px}}
+
+.comment-form{display:flex;gap:6px;margin-top:10px}.comment-form input{flex:1;min-width:0;border:1px solid #c5a56b40;border-radius:6px;background:#111719;color:#f1e5d0;padding:9px;font:11px 'DM Sans',sans-serif}.comment-form button{width:38px;border:1px solid #c5a56b66;border-radius:6px;background:#c5a56b16;color:#e5cd98}.post-comment{font-size:10px!important;margin:6px 0!important;padding-top:5px;border-top:1px solid #c5a56b1d}.post-comment strong{font:600 12px 'Cormorant Garamond',serif;color:#dfc58f}
