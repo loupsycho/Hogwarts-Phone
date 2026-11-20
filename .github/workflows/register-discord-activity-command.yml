@@ -1,0 +1,48 @@
+name: Register Discord Activity launch command
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Register /launch command
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_APP_ID: ${{ vars.DISCORD_APP_ID }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${DISCORD_BOT_TOKEN:-}" ]; then
+            echo "::error::Missing repository secret DISCORD_BOT_TOKEN"
+            exit 1
+          fi
+
+          if [ -z "${DISCORD_APP_ID:-}" ]; then
+            echo "::error::Missing repository variable DISCORD_APP_ID"
+            exit 1
+          fi
+
+          API="https://discord.com/api/v10/applications/$DISCORD_APP_ID/commands"
+          BODY='{"name":"launch","type":4,"description":"Lancer Hogwarts Phone","handler":2,"integration_types":[0,1],"contexts":[0,1,2]}'
+
+          EXISTING=$(curl -fsS -H "Authorization: Bot $DISCORD_BOT_TOKEN" "$API")
+          COMMAND_ID=$(echo "$EXISTING" | jq -r '.[] | select(.name == "launch" and .type == 4) | .id' | head -n 1)
+
+          if [ -n "$COMMAND_ID" ]; then
+            curl -fsS -X PATCH "$API/$COMMAND_ID" \
+              -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "$BODY"
+          else
+            curl -fsS -X POST "$API" \
+              -H "Authorization: Bot $DISCORD_BOT_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "$BODY"
+          fi
+
+          echo "Discord /launch command registered successfully."
