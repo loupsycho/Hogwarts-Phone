@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Bell,
   CalendarDays,
@@ -7,14 +7,27 @@ import {
   HeartHandshake,
   Home,
   Instagram,
+  LogOut,
   Mail,
   Newspaper,
   Sparkles,
   Users,
   WandSparkles,
 } from 'lucide-react';
+import { authClient } from './lib/auth-client';
 
 type AppKey = 'home' | 'messages' | 'instagram' | 'gazette' | 'contacts' | 'links' | 'agenda';
+type Character = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  characterType: 'student' | 'staff';
+  house: string | null;
+  roleTitle: string | null;
+  avatarUrl: string | null;
+};
+type AccountStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
+type AuthScreen = 'checking' | 'signed-out' | 'pending' | 'rejected' | 'suspended' | 'no-characters' | 'select-character' | 'app' | 'error';
 
 const applications: {
   key: Exclude<AppKey, 'home'>;
@@ -41,8 +54,79 @@ const pageCopy: Record<Exclude<AppKey, 'home'>, { title: string; subtitle: strin
 };
 
 function App() {
+  const [authScreen, setAuthScreen] = useState<AuthScreen>('checking');
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [activeApp, setActiveApp] = useState<AppKey>('home');
+  const [authError, setAuthError] = useState('');
+
+  const loadPlayer = async () => {
+    setAuthScreen('checking');
+    try {
+      const session = await authClient.getSession();
+      if (!session.data?.user) {
+        setAuthScreen('signed-out');
+        return;
+      }
+
+      const response = await fetch('/api/account/bootstrap', { credentials: 'include' });
+      if (response.status === 401) {
+        setAuthScreen('signed-out');
+        return;
+      }
+      if (!response.ok) throw new Error('Impossible de charger le compte joueur.');
+      const data: { accountStatus: AccountStatus; characters: Character[] } = await response.json();
+      setCharacters(data.characters ?? []);
+
+      if (data.accountStatus === 'pending') setAuthScreen('pending');
+      else if (data.accountStatus === 'rejected') setAuthScreen('rejected');
+      else if (data.accountStatus === 'suspended') setAuthScreen('suspended');
+      else if (!data.characters?.length) setAuthScreen('no-characters');
+      else setAuthScreen('select-character');
+    } catch {
+      setAuthError('La connexion au compte n’a pas pu être vérifiée. Réessaie dans quelques instants.');
+      setAuthScreen('error');
+    }
+  };
+
+  useEffect(() => {
+    void loadPlayer();
+  }, []);
+
+  const signIn = async () => {
+    setAuthError('');
+    try {
+      await authClient.signIn.social({
+        provider: 'discord',
+        callbackURL: window.location.origin,
+      });
+    } catch {
+      setAuthError('La connexion Discord a échoué. Vérifie ta connexion puis réessaie.');
+    }
+  };
+
+  const signOut = async () => {
+    await authClient.signOut();
+    setSelectedCharacter(null);
+    setCharacters([]);
+    setActiveApp('home');
+    setAuthScreen('signed-out');
+  };
+
   const openApp = (key: AppKey) => setActiveApp(key);
+
+  const renderMessageScreen = (title: string, message: string, action?: { label: string; onClick: () => void }) => (
+    <div className="auth-content">
+      <div className="auth-card">
+        <div className="auth-crest"><WandSparkles size={29} /></div>
+        <p className="eyebrow">HOGWARTS • A NEW ERA</p>
+        <h2>{title}</h2>
+        <p>{message}</p>
+        {action && <button className="primary-action" onClick={action.onClick}>{action.label}</button>}
+        <button className="quiet-action" onClick={signOut}>Se déconnecter</button>
+      </div>
+    </div>
+  );
 
   return (
     <main className="page-shell">
@@ -61,76 +145,147 @@ function App() {
             <p className="eyebrow">HOGWARTS • A NEW ERA</p>
             <h1>Hogwarts <span>Phone</span></h1>
           </div>
-          <button className="icon-button notification-button" aria-label="Notifications">
-            <Bell size={19} />
-            <i />
-          </button>
+          {authScreen === 'app' && selectedCharacter ? (
+            <button className="icon-button notification-button" aria-label="Changer de personnage" title="Changer de personnage" onClick={() => { setSelectedCharacter(null); setAuthScreen('select-character'); }}>
+              <Users size={19} />
+            </button>
+          ) : null}
         </div>
 
-        {activeApp === 'home' ? (
-          <div className="screen-content">
-            <section className="welcome-card">
-              <div className="welcome-ornament">✦</div>
-              <p className="eyebrow">LE MONDE DES SORCIERS</p>
-              <h2>La magie<br /><em>dans votre poche.</em></h2>
-              <p className="welcome-copy">Votre courrier, vos rencontres et toute votre vie magique réunis dans un seul endroit.</p>
-              <div className="welcome-rule"><span /> <WandSparkles size={15} /> <span /></div>
-            </section>
-
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">VOTRE QUOTIDIEN MAGIQUE</p>
-                <h3>Applications</h3>
-              </div>
-              <span className="app-count">06</span>
-            </div>
-
-            <div className="app-grid">
-              {applications.map((app) => {
-                const Icon = app.icon;
-                return (
-                  <button className={`app-tile app-${app.key}`} key={app.key} onClick={() => openApp(app.key)}>
-                    <span className="app-seal">{app.seal}</span>
-                    <span className="app-icon"><Icon size={22} strokeWidth={1.65} /></span>
-                    <span className="app-label">{app.label}</span>
-                    <span className="app-description">{app.description}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="parchment-note">
-              <Sparkles size={16} />
-              <span>Une nouvelle ère commence à Poudlard.</span>
-            </div>
-          </div>
-        ) : (
-          <div className="screen-content subpage">
-            <button className="back-link" onClick={() => openApp('home')}><ChevronLeft size={16} /> Retour aux applications</button>
-            <div className="subpage-card">
-              <div className="subpage-icon"><WandSparkles size={27} /></div>
+        {authScreen === 'checking' && (
+          <div className="auth-content">
+            <div className="auth-card">
+              <div className="auth-crest"><WandSparkles size={29} /></div>
               <p className="eyebrow">HOGWARTS • A NEW ERA</p>
-              <h2>{pageCopy[activeApp].title}</h2>
-              <p>{pageCopy[activeApp].subtitle}</p>
-              <span className="feature-status">EN PRÉPARATION</span>
+              <h2>Un instant…</h2>
+              <p>Nous préparons votre espace magique.</p>
+              <span className="feature-status">CONNEXION EN COURS</span>
             </div>
           </div>
         )}
 
-        <nav className="bottom-nav" aria-label="Navigation principale">
-          <button className={activeApp === 'home' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('home')}>
-            <Home size={18} /><span>Accueil</span>
-          </button>
-          <button className={activeApp === 'messages' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('messages')}>
-            <Mail size={18} /><span>Messages</span>
-          </button>
-          <button className={activeApp === 'gazette' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('gazette')}>
-            <Newspaper size={18} /><span>Gazette</span>
-          </button>
-          <button className={activeApp === 'contacts' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('contacts')}>
-            <Users size={18} /><span>Contacts</span>
-          </button>
-        </nav>
+        {authScreen === 'signed-out' && (
+          <div className="auth-content">
+            <div className="auth-card">
+              <div className="auth-crest"><WandSparkles size={29} /></div>
+              <p className="eyebrow">VOTRE TÉLÉPHONE MAGIQUE</p>
+              <h2>Bienvenue à<br /><em>Hogwarts Phone</em></h2>
+              <p>Connecte-toi avec ton compte Discord pour retrouver tes personnages et accéder à leurs applications.</p>
+              <button className="primary-action discord-action" onClick={signIn}>
+                <span className="discord-mark">◉</span> Continuer avec Discord
+              </button>
+              {authError && <p className="auth-error">{authError}</p>}
+              <p className="auth-footnote">L’accès est soumis à la validation de ton compte par l’administration.</p>
+            </div>
+          </div>
+        )}
+
+        {authScreen === 'pending' && renderMessageScreen('Compte en attente', 'Ta demande d’accès a bien été enregistrée. Tu pourras utiliser Hogwarts Phone dès que ton compte Discord aura été accepté par l’administration.')}
+        {authScreen === 'rejected' && renderMessageScreen('Accès refusé', 'L’administration n’a pas autorisé l’accès à Hogwarts Phone pour ce compte.')}
+        {authScreen === 'suspended' && renderMessageScreen('Compte suspendu', 'L’accès à Hogwarts Phone est temporairement suspendu pour ce compte.')}
+        {authScreen === 'no-characters' && renderMessageScreen('Ton espace est prêt', 'Ton compte est accepté, mais aucun personnage ne t’a encore été attribué. Ils apparaîtront ici dès que l’administration les aura créés.')}
+        {authScreen === 'error' && renderMessageScreen('Un petit souci magique', authError, { label: 'Réessayer', onClick: () => void loadPlayer() })}
+
+        {authScreen === 'select-character' && (
+          <div className="screen-content character-screen">
+            <div className="section-heading character-heading">
+              <div>
+                <p className="eyebrow">ESPACE PERSONNEL</p>
+                <h3>Qui incarnes-tu ?</h3>
+              </div>
+              <button className="quiet-icon-action" onClick={signOut} aria-label="Se déconnecter"><LogOut size={17} /></button>
+            </div>
+            <p className="character-intro">Choisis le personnage avec lequel tu souhaites entrer dans ton téléphone.</p>
+            <div className="character-list">
+              {characters.map((character) => (
+                <button className="character-card" key={character.id} onClick={() => { setSelectedCharacter(character); setActiveApp('home'); setAuthScreen('app'); }}>
+                  <span className="character-avatar">
+                    {character.avatarUrl ? <img src={character.avatarUrl} alt="" /> : <WandSparkles size={22} />}
+                  </span>
+                  <span className="character-info">
+                    <strong>{character.firstName} {character.lastName}</strong>
+                    <small>{character.characterType === 'student' ? 'Élève' : character.roleTitle || 'Personnel'}{character.house ? ' · ' + character.house : ''}</small>
+                  </span>
+                  <ChevronLeft className="character-arrow" size={18} />
+                </button>
+              ))}
+            </div>
+            <button className="quiet-action" onClick={signOut}>Se déconnecter</button>
+          </div>
+        )}
+
+        {authScreen === 'app' && selectedCharacter && (
+          <>
+            <div className="character-banner">
+              <span>{selectedCharacter.firstName} {selectedCharacter.lastName}</span>
+              <small>{selectedCharacter.house ?? selectedCharacter.roleTitle ?? 'Hogwarts'}</small>
+            </div>
+            {activeApp === 'home' ? (
+              <div className="screen-content">
+                <section className="welcome-card">
+                  <div className="welcome-ornament">✦</div>
+                  <p className="eyebrow">LE MONDE DES SORCIERS</p>
+                  <h2>La magie<br /><em>dans votre poche.</em></h2>
+                  <p className="welcome-copy">Votre courrier, vos rencontres et toute votre vie magique réunis dans un seul endroit.</p>
+                  <div className="welcome-rule"><span /> <WandSparkles size={15} /> <span /></div>
+                </section>
+
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow">VOTRE QUOTIDIEN MAGIQUE</p>
+                    <h3>Applications</h3>
+                  </div>
+                  <span className="app-count">06</span>
+                </div>
+
+                <div className="app-grid">
+                  {applications.map((app) => {
+                    const Icon = app.icon;
+                    return (
+                      <button className={'app-tile app-' + app.key} key={app.key} onClick={() => openApp(app.key)}>
+                        <span className="app-seal">{app.seal}</span>
+                        <span className="app-icon"><Icon size={22} strokeWidth={1.65} /></span>
+                        <span className="app-label">{app.label}</span>
+                        <span className="app-description">{app.description}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="parchment-note">
+                  <Sparkles size={16} />
+                  <span>Une nouvelle ère commence à Poudlard.</span>
+                </div>
+              </div>
+            ) : (
+              <div className="screen-content subpage">
+                <button className="back-link" onClick={() => openApp('home')}><ChevronLeft size={16} /> Retour aux applications</button>
+                <div className="subpage-card">
+                  <div className="subpage-icon"><WandSparkles size={27} /></div>
+                  <p className="eyebrow">HOGWARTS • A NEW ERA</p>
+                  <h2>{pageCopy[activeApp].title}</h2>
+                  <p>{pageCopy[activeApp].subtitle}</p>
+                  <span className="feature-status">EN PRÉPARATION</span>
+                </div>
+              </div>
+            )}
+
+            <nav className="bottom-nav" aria-label="Navigation principale">
+              <button className={activeApp === 'home' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('home')}>
+                <Home size={18} /><span>Accueil</span>
+              </button>
+              <button className={activeApp === 'messages' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('messages')}>
+                <Mail size={18} /><span>Messages</span>
+              </button>
+              <button className={activeApp === 'gazette' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('gazette')}>
+                <Newspaper size={18} /><span>Gazette</span>
+              </button>
+              <button className={activeApp === 'contacts' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('contacts')}>
+                <Users size={18} /><span>Contacts</span>
+              </button>
+            </nav>
+          </>
+        )}
         <div className="home-indicator" />
       </section>
 
