@@ -41,6 +41,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const r = await databasePool.query("SELECT p.id,p.character_id,p.caption,COALESCE(p.image_url, CASE WHEN p.media_id IS NOT NULL THEN '/api/media?id=' || p.media_id::text ELSE NULL END) AS image_url,ma.mime_type AS media_mime_type,p.created_at,c.first_name,c.last_name,c.avatar_url,c.house,c.sexual_orientation,(SELECT count(*) FROM instagram_likes l WHERE l.post_id=p.id) AS likes,(SELECT count(*) FROM instagram_comments cm WHERE cm.post_id=p.id) AS comments, (SELECT COALESCE(json_agg(json_build_object('id',cm.id,'body',cm.body,'characterName',cc.first_name || ' ' || cc.last_name) ORDER BY cm.created_at), '[]'::json) FROM instagram_comments cm JOIN characters cc ON cc.id=cm.character_id WHERE cm.post_id=p.id) AS comment_list, EXISTS(SELECT 1 FROM instagram_likes l WHERE l.post_id=p.id AND l.character_id=$1) AS liked FROM instagram_posts p JOIN characters c ON c.id=p.character_id LEFT JOIN media_assets ma ON ma.id=p.media_id ORDER BY p.created_at DESC LIMIT 100", [activeCharacter || null]);
         return send(res, 200, { posts: r.rows });
       }
+      if (action === "notifications") {
+        const r = await databasePool.query("SELECT id,notification_type,title,body,target_type,target_id,read_at,created_at FROM notifications WHERE character_id=$1 ORDER BY created_at DESC LIMIT 100", [activeCharacter]);
+        return send(res, 200, { notifications: r.rows });
+      }
+      if (action === "instagram-profile") {
+        const targetId = String(req.query.profileCharacterId ?? "");
+        const person = await databasePool.query("SELECT c.id,c.first_name,c.last_name,c.avatar_url,c.house,c.character_type,c.role_title,c.sexual_orientation,c.age,(SELECT count(*) FROM instagram_follows f WHERE f.followed_character_id=c.id) AS followers,(SELECT count(*) FROM instagram_follows f WHERE f.follower_character_id=c.id) AS following,EXISTS(SELECT 1 FROM instagram_follows f WHERE f.follower_character_id=$2 AND f.followed_character_id=c.id) AS is_following FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=$1 AND u.account_status='approved'", [targetId, activeCharacter || null]);
+        if (!person.rowCount) return send(res, 404, { error: "Profil introuvable." });
+        const posts = await databasePool.query("SELECT p.id,p.caption,COALESCE(p.image_url,CASE WHEN p.media_id IS NOT NULL THEN '/api/media?id='||p.media_id::text ELSE NULL END) AS image_url,ma.mime_type AS media_mime_type,p.created_at FROM instagram_posts p LEFT JOIN media_assets ma ON ma.id=p.media_id WHERE p.character_id=$1 ORDER BY p.created_at DESC", [targetId]);
+        return send(res, 200, { profile: person.rows[0], posts: posts.rows });
+      }
+      if (action === "following") {
+        const r = await databasePool.query("SELECT c.id,c.first_name,c.last_name,c.avatar_url,c.house,c.sexual_orientation FROM instagram_follows f JOIN characters c ON c.id=f.followed_character_id WHERE f.follower_character_id=$1 ORDER BY c.first_name", [activeCharacter]);
+        return send(res, 200, { characters: r.rows });
+      }
       if (action === "gazette") {
         const r = await databasePool.query("SELECT id,title,summary,body,category,published_at FROM gazette_articles WHERE publication_status='published' ORDER BY published_at DESC NULLS LAST");
         return send(res, 200, { articles: r.rows });
@@ -50,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return send(res, 200, { requests: r.rows });
       }
       if (action === "conversations") {
-        const r = await databasePool.query("SELECT c.id,c.conversation_type,c.title,c.updated_at, (SELECT string_agg(ch.first_name || ' ' || ch.last_name, ', ') FROM conversation_members cm JOIN characters ch ON ch.id=cm.character_id WHERE cm.conversation_id=c.id AND ch.id<>$1) AS participants, (SELECT COALESCE(NULLIF(m.body,''), CASE WHEN m.media_id IS NOT NULL THEN 'Pièce jointe' ELSE NULL END) FROM messages m WHERE m.conversation_id=c.id ORDER BY m.sent_at DESC LIMIT 1) AS last_message FROM conversations c JOIN conversation_members mine ON mine.conversation_id=c.id WHERE mine.character_id=$1 ORDER BY c.updated_at DESC", [activeCharacter]);
+        const r = await databasePool.query("SELECT c.id,c.conversation_type,c.title,c.updated_at,CASE WHEN c.avatar_media_id IS NOT NULL THEN '/api/media?id='||c.avatar_media_id::text ELSE NULL END AS avatar_url, (SELECT string_agg(ch.first_name || ' ' || ch.last_name, ', ') FROM conversation_members cm JOIN characters ch ON ch.id=cm.character_id WHERE cm.conversation_id=c.id AND ch.id<>$1) AS participants, (SELECT COALESCE(NULLIF(m.body,''), CASE WHEN m.media_id IS NOT NULL THEN 'Pièce jointe' ELSE NULL END) FROM messages m WHERE m.conversation_id=c.id ORDER BY m.sent_at DESC LIMIT 1) AS last_message FROM conversations c JOIN conversation_members mine ON mine.conversation_id=c.id WHERE mine.character_id=$1 ORDER BY c.updated_at DESC", [activeCharacter]);
         return send(res, 200, { conversations: r.rows });
       }
       if (action === "messages") {
@@ -92,12 +107,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       if (action === "instagram-like") {
         if (!activeCharacter || !body.postId) return bad(res, "Données manquantes.");
-        await databasePool.query("INSERT INTO instagram_likes(post_id,character_id) VALUES($1,$2) ON CONFLICT DO NOTHING", [body.postId, activeCharacter]);
+        const liked = await databasePool.query("INSERT INTO instagram_likes(post_id,character_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING post_id", [body.postId, activeCharacter]);
+        if (liked.rowCount) { const owner = await databasePool.query("SELECT character_id FROM instagram_posts WHERE id=$1", [body.postId]); if (owner.rowCount && owner.rows[0].character_id !== activeCharacter) await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'instagram_like','Nouveau J’aime','Une personne aime votre publication.','instagram_post',$2)", [owner.rows[0].character_id,body.postId]); }
         return send(res, 200, { ok: true });
       }
       if (action === "instagram-comment") {
         if (!activeCharacter || !body.postId || !String(body.body ?? "").trim()) return bad(res, "Commentaire invalide.");
         await databasePool.query("INSERT INTO instagram_comments(post_id,character_id,body) VALUES($1,$2,$3)", [activeCharacter, body.postId, String(body.body).trim()]);
+        const owner = await databasePool.query("SELECT character_id FROM instagram_posts WHERE id=$1", [body.postId]); if (owner.rowCount && owner.rows[0].character_id !== activeCharacter) await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'instagram_comment','Nouveau commentaire','Une personne a commenté votre publication.','instagram_post',$2)", [owner.rows[0].character_id,body.postId]);
         return send(res, 201, { ok: true });
       }
       if (action === "link-request") {
@@ -105,11 +122,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const target = await databasePool.query("SELECT 1 FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=$1 AND u.account_status='approved'", [body.toCharacterId]);
         if (!target.rowCount) return bad(res, "Ce personnage n'est pas disponible.");
         const r = await databasePool.query("INSERT INTO link_requests(from_character_id,to_character_id,relationship_type,message) VALUES($1,$2,$3,$4) RETURNING id", [activeCharacter, body.toCharacterId, String(body.relationshipType), body.message || null]);
+        await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'link_request','Nouvelle demande de lien','Un personnage vous propose un lien.','link_request',$2)", [body.toCharacterId,r.rows[0].id]);
         return send(res, 201, { id: r.rows[0].id });
       }
       if (action === "link-response") {
         if (!activeCharacter || !body.requestId || !["accepted","declined"].includes(body.status)) return bad(res, "Réponse invalide.");
-        const r = await databasePool.query("UPDATE link_requests SET request_status=$1,updated_at=now() WHERE id=$2 AND to_character_id=$3 RETURNING id", [body.status, body.requestId, activeCharacter]);
+        const r = await databasePool.query("UPDATE link_requests SET request_status=$1,updated_at=now() WHERE id=$2 AND to_character_id=$3 RETURNING id,from_character_id", [body.status, body.requestId, activeCharacter]);
+        if (r.rowCount) await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'link_response','Réponse à votre demande de lien',$2,'link_request',$3)", [r.rows[0].from_character_id,body.status==="accepted"?"Votre demande de lien a été acceptée.":"Votre demande de lien a été refusée.",body.requestId]);
         return send(res, r.rowCount ? 200 : 404, { ok: Boolean(r.rowCount) });
       }
       if (action === "conversation") {
@@ -117,8 +136,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const ids = [...new Set([activeCharacter, ...body.participantIds.map(String)])];
         const check = await databasePool.query("SELECT c.id FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=ANY($1::uuid[]) AND u.account_status='approved'", [ids]);
         if (check.rowCount !== ids.length) return bad(res, "Un destinataire est invalide.");
-        const c = await databasePool.query("INSERT INTO conversations(conversation_type,title,created_by_character_id) VALUES($1,$2,$3) RETURNING id", [ids.length > 2 ? "group" : "direct", body.title || null, activeCharacter]);
+        if (body.avatarMediaId) { const media = await databasePool.query("SELECT id FROM media_assets WHERE id=$1 AND character_id=$2 AND media_kind='gallery'", [body.avatarMediaId,activeCharacter]); if (!media.rowCount) return bad(res,"Photo de groupe inaccessible."); }
+        const c = await databasePool.query("INSERT INTO conversations(conversation_type,title,created_by_character_id,avatar_media_id) VALUES($1,$2,$3,$4) RETURNING id", [ids.length > 2 ? "group" : "direct", body.title || null, activeCharacter,body.avatarMediaId||null]);
         await databasePool.query("INSERT INTO conversation_members(conversation_id,character_id) SELECT $1, unnest($2::uuid[])", [c.rows[0].id, ids]);
+        if (ids.length > 2) await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) SELECT unnest($1::uuid[]),'group_invite','Nouveau groupe',$2,'conversation',$3", [ids.filter(id=>id!==activeCharacter),body.title||"Vous avez été ajouté à un groupe.",c.rows[0].id]);
         return send(res, 201, { id: c.rows[0].id });
       }
       if (action === "message") {
@@ -128,6 +149,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (body.mediaId) { const m = await databasePool.query("SELECT id FROM media_assets WHERE id=$1 AND character_id=$2 AND media_kind='message'", [body.mediaId, activeCharacter]); if (!m.rowCount) return bad(res, "Pièce jointe inaccessible."); }
         const r = await databasePool.query("INSERT INTO messages(conversation_id,sender_character_id,body,media_id) VALUES($1,$2,$3,$4) RETURNING id", [body.conversationId, activeCharacter, String(body.body ?? "").trim(), body.mediaId || null]);
         await databasePool.query("UPDATE conversations SET updated_at=now() WHERE id=$1", [body.conversationId]);
+        const recipients = await databasePool.query("SELECT character_id FROM conversation_members WHERE conversation_id=$1 AND character_id<>$2", [body.conversationId,activeCharacter]);
+        for (const recipient of recipients.rows) await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'message','Nouveau hibou',$2,'conversation',$3)", [recipient.character_id,String(body.body??"").trim()?"Vous avez reçu un nouveau message.":"Vous avez reçu une pièce jointe.",body.conversationId]);
         return send(res, 201, { id: r.rows[0].id });
       }
       if (action === "agenda-invite") {
@@ -138,12 +161,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const allowed = await databasePool.query("SELECT c.id FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=ANY($1::uuid[]) AND u.account_status='approved'", [ids]);
         if (allowed.rowCount !== ids.length) return bad(res, "Un participant n'est pas disponible.");
         await databasePool.query("INSERT INTO agenda_event_participants(event_id,character_id,response) SELECT $1, unnest($2::uuid[]), 'invited' ON CONFLICT(event_id,character_id) DO NOTHING", [body.eventId, ids]);
+        await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) SELECT unnest($1::uuid[]),'agenda_invite','Invitation à un événement','Vous avez été invité à un événement.','agenda_event',$2", [ids,body.eventId]);
         return send(res, 201, { ok: true });
       }
       if (action === "agenda-response") {
         if (!activeCharacter || !body.eventId || !["accepted","declined"].includes(body.response)) return bad(res, "Réponse invalide.");
         const r = await databasePool.query("UPDATE agenda_event_participants SET response=$1 WHERE event_id=$2 AND character_id=$3 RETURNING event_id", [body.response,body.eventId,activeCharacter]);
         return send(res, r.rowCount ? 200 : 404, { ok: Boolean(r.rowCount) });
+      }
+      if (action === "notification-read") {
+        if (!activeCharacter || !body.notificationId) return bad(res,"Notification invalide.");
+        const r = await databasePool.query("UPDATE notifications SET read_at=now() WHERE id=$1 AND character_id=$2 RETURNING id", [body.notificationId,activeCharacter]);
+        return send(res,r.rowCount?200:404,{ok:Boolean(r.rowCount)});
+      }
+      if (action === "instagram-follow") {
+        if (!activeCharacter || !body.targetCharacterId || body.targetCharacterId===activeCharacter) return bad(res,"Profil invalide.");
+        const target = await databasePool.query("SELECT c.id FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=$1 AND u.account_status='approved'",[body.targetCharacterId]);
+        if (!target.rowCount) return bad(res,"Profil indisponible.");
+        await databasePool.query("INSERT INTO instagram_follows(follower_character_id,followed_character_id) VALUES($1,$2) ON CONFLICT DO NOTHING",[activeCharacter,body.targetCharacterId]);
+        return send(res,200,{ok:true});
+      }
+      if (action === "instagram-unfollow") {
+        await databasePool.query("DELETE FROM instagram_follows WHERE follower_character_id=$1 AND followed_character_id=$2",[activeCharacter,body.targetCharacterId]);
+        return send(res,200,{ok:true});
       }
       if (action === "agenda-event") {
         if (!body.title || !body.startsAt) return bad(res, "Titre et date requis.");
