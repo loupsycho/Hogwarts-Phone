@@ -39,14 +39,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const clerk = createClerkClient({ secretKey });
     const clerkUser = await clerk.users.getUser(clerkUserId);
     const discordAccount = clerkUser.externalAccounts.find(
-      (account) => account.provider === "oauth_discord" || account.provider === "discord",
+      (account) => account.provider.toLowerCase().includes("discord"),
     );
 
-    if (!discordAccount?.externalId) {
+    if (!discordAccount?.providerUserId) {
       return res.status(403).json({ error: "Discord account not linked" });
     }
 
-    const discordUserId = discordAccount.externalId;
+    const discordUserId = discordAccount.providerUserId;
     const discordUsername =
       discordAccount.username ||
       [discordAccount.firstName, discordAccount.lastName].filter(Boolean).join(" ") ||
