@@ -27,7 +27,7 @@ type Character = {
   avatarUrl: string | null;
 };
 type AccountStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
-type AuthScreen = 'checking' | 'signed-out' | 'pending' | 'rejected' | 'suspended' | 'no-characters' | 'select-character' | 'app' | 'error';
+type AuthScreen = 'checking' | 'signed-out' | 'pending' | 'rejected' | 'suspended' | 'no-characters' | 'select-character' | 'app' | 'admin' | 'error';
 
 const applications: {
   key: Exclude<AppKey, 'home'>;
@@ -76,10 +76,11 @@ function App() {
         return;
       }
       if (!response.ok) throw new Error('Impossible de charger le compte joueur.');
-      const data: { accountStatus: AccountStatus; characters: Character[] } = await response.json();
+      const data: { accountStatus: AccountStatus; characters: Character[]; isAdmin?: boolean } = await response.json();
       setCharacters(data.characters ?? []);
 
-      if (data.accountStatus === 'pending') setAuthScreen('pending');
+      if (data.isAdmin) setAuthScreen('admin');
+      else if (data.accountStatus === 'pending') setAuthScreen('pending');
       else if (data.accountStatus === 'rejected') setAuthScreen('rejected');
       else if (data.accountStatus === 'suspended') setAuthScreen('suspended');
       else if (!data.characters?.length) setAuthScreen('no-characters');
@@ -194,6 +195,7 @@ function App() {
           </div>
         )}
 
+        {authScreen === 'admin' && renderMessageScreen('Espace administration', 'Ton compte propriétaire est reconnu. Le panneau de gestion Hogwarts Phone sera accessible ici : gestion des joueurs, des accès, des personnages, des contenus et des applications.')}
         {authScreen === 'pending' && renderMessageScreen('Compte en attente', 'Ta demande d’accès a bien été enregistrée. Tu pourras utiliser Hogwarts Phone dès que ton compte Discord aura été accepté par l’administration.')}
         {authScreen === 'rejected' && renderMessageScreen('Accès refusé', 'L’administration n’a pas autorisé l’accès à Hogwarts Phone pour ce compte.')}
         {authScreen === 'suspended' && renderMessageScreen('Compte suspendu', 'L’accès à Hogwarts Phone est temporairement suspendu pour ce compte.')}
