@@ -14,7 +14,7 @@ import {
   Users,
   WandSparkles,
 } from 'lucide-react';
-import { SignInButton, useAuth, useClerk } from '@clerk/clerk-react';
+import { authClient } from './lib/auth-client';
 
 type AppKey = 'home' | 'messages' | 'instagram' | 'gazette' | 'contacts' | 'links' | 'agenda';
 type Character = {
@@ -59,22 +59,18 @@ function App() {
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [activeApp, setActiveApp] = useState<AppKey>('home');
   const [authError, setAuthError] = useState('');
-  const { isLoaded, isSignedIn, getToken } = useAuth();
-  const { signOut: clerkSignOut } = useClerk();
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   const loadPlayer = async () => {
     setAuthScreen('checking');
     try {
-      const token = await getToken();
-      if (!token) {
+      const session = await authClient.getSession();
+      if (!session.data?.user) {
         setAuthScreen('signed-out');
         return;
       }
 
-      const response = await fetch('/api/account/bootstrap', {
-        headers: { Authorization: `Bearer ${token}` },
-        credentials: 'omit',
-      });
+      const response = await fetch('/api/account/bootstrap', { credentials: 'include' });
       if (response.status === 401) {
         setAuthScreen('signed-out');
         return;
@@ -96,18 +92,37 @@ function App() {
   };
 
   useEffect(() => {
-    if (!isLoaded) return;
-    if (!isSignedIn) {
-      setCharacters([]);
-      setSelectedCharacter(null);
-      setAuthScreen('signed-out');
-      return;
-    }
     void loadPlayer();
-  }, [isLoaded, isSignedIn]);
+  }, []);
+
+  const signIn = async () => {
+    if (isSigningIn) return;
+    setAuthError('');
+    setIsSigningIn(true);
+    try {
+      const result = await authClient.signIn.social({
+        provider: 'discord',
+        callbackURL: window.location.origin,
+        errorCallbackURL: window.location.origin,
+      });
+      if (result.error) {
+        const details = result.error as unknown as Record<string, unknown>;
+        const diagnostic = [
+          typeof details.message === 'string' ? details.message : '',
+          typeof details.code === 'string' ? 'Code : ' + details.code : '',
+          typeof details.status === 'number' ? 'HTTP : ' + details.status : '',
+        ].filter(Boolean).join(' · ');
+        throw new Error(diagnostic || 'Le serveur a refusé de démarrer la connexion Discord.');
+      }
+      // Better Auth gère lui-même la redirection OAuth.
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'La connexion Discord a échoué.');
+      setIsSigningIn(false);
+    }
+  };
 
   const signOut = async () => {
-    await clerkSignOut();
+    await authClient.signOut();
     setSelectedCharacter(null);
     setCharacters([]);
     setActiveApp('home');
@@ -172,9 +187,9 @@ function App() {
               <p className="eyebrow">VOTRE TÉLÉPHONE MAGIQUE</p>
               <h2>Bienvenue à<br /><em>Hogwarts Phone</em></h2>
               <p>Connecte-toi avec ton compte Discord pour retrouver tes personnages et accéder à leurs applications.</p>
-              <SignInButton mode="modal">
-                <button className="primary-action discord-action">Continuer avec Discord</button>
-              </SignInButton>
+              <button className="primary-action discord-action" onClick={signIn} disabled={isSigningIn}>
+                {isSigningIn ? 'Ouverture de Discord…' : 'Continuer avec Discord'}
+              </button>
               {authError && <p className="auth-error">{authError}</p>}
               <p className="auth-footnote">L’accès est soumis à la validation de ton compte par l’administration.</p>
             </div>
