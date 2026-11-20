@@ -112,6 +112,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       if (action === "link-request") {
         if (!activeCharacter || !body.toCharacterId || !body.relationshipType || body.toCharacterId === activeCharacter) return bad(res, "Demande invalide.");
+        const target = await databasePool.query("SELECT 1 FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=$1 AND u.account_status='approved'", [body.toCharacterId]);
+        if (!target.rowCount) return bad(res, "Ce personnage n'est pas disponible.");
         const r = await databasePool.query("INSERT INTO link_requests(from_character_id,to_character_id,relationship_type,message) VALUES($1,$2,$3,$4) RETURNING id", [activeCharacter, body.toCharacterId, String(body.relationshipType), body.message || null]);
         return send(res, 201, { id: r.rows[0].id });
       }
@@ -123,7 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (action === "conversation") {
         if (!activeCharacter || !Array.isArray(body.participantIds) || !body.participantIds.length) return bad(res, "Destinataires requis.");
         const ids = [...new Set([activeCharacter, ...body.participantIds.map(String)])];
-        const check = await databasePool.query("SELECT id FROM characters WHERE id=ANY($1::uuid[])", [ids]);
+        const check = await databasePool.query("SELECT c.id FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=ANY($1::uuid[]) AND u.account_status='approved'", [ids]);
         if (check.rowCount !== ids.length) return bad(res, "Un destinataire est invalide.");
         const c = await databasePool.query("INSERT INTO conversations(conversation_type,title,created_by_character_id) VALUES($1,$2,$3) RETURNING id", [ids.length > 2 ? "group" : "direct", body.title || null, activeCharacter]);
         await databasePool.query("INSERT INTO conversation_members(conversation_id,character_id) SELECT $1, unnest($2::uuid[])", [c.rows[0].id, ids]);
@@ -142,6 +144,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const event = await databasePool.query("SELECT id,created_by_character_id FROM agenda_events WHERE id=$1", [body.eventId]);
         if (!event.rowCount || (!ctx.isAdmin && event.rows[0].created_by_character_id !== activeCharacter)) return send(res, 403, { error: "Tu ne peux pas inviter à cet événement." });
         const ids = [...new Set(body.participantIds.map(String))];
+        const allowed = await databasePool.query("SELECT c.id FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=ANY($1::uuid[]) AND u.account_status='approved'", [ids]);
+        if (allowed.rowCount !== ids.length) return bad(res, "Un participant n'est pas disponible.");
         await databasePool.query("INSERT INTO agenda_event_participants(event_id,character_id,response) SELECT $1, unnest($2::uuid[]), 'invited' ON CONFLICT(event_id,character_id) DO NOTHING", [body.eventId, ids]);
         return send(res, 201, { ok: true });
       }
