@@ -178,7 +178,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!activeCharacter || !body.targetCharacterId || body.targetCharacterId===activeCharacter) return bad(res,"Profil invalide.");
         const target = await databasePool.query("SELECT c.id FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=$1 AND u.account_status='approved'",[body.targetCharacterId]);
         if (!target.rowCount) return bad(res,"Profil indisponible.");
-        await databasePool.query("INSERT INTO instagram_follows(follower_character_id,followed_character_id) VALUES($1,$2) ON CONFLICT DO NOTHING",[activeCharacter,body.targetCharacterId]);
+        const followed = await databasePool.query("INSERT INTO instagram_follows(follower_character_id,followed_character_id) VALUES($1,$2) ON CONFLICT DO NOTHING RETURNING followed_character_id",[activeCharacter,body.targetCharacterId]);
+        if (followed.rowCount) await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'instagram_follow','Nouvel abonnement','Un personnage vous suit désormais sur Instagram.','instagram_profile',$2)",[body.targetCharacterId,activeCharacter]);
         return send(res,200,{ok:true});
       }
       if (action === "instagram-unfollow") {
