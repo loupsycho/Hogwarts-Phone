@@ -34,11 +34,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === "GET") {
       if (action === "contacts") {
-        const r = await databasePool.query("SELECT c.id, c.first_name, c.last_name, c.character_type, c.house, c.role_title, c.avatar_url FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE u.account_status='approved' ORDER BY c.character_type, c.house NULLS LAST, c.first_name");
+        const r = await databasePool.query("SELECT c.id, c.first_name, c.last_name, c.character_type, c.house, c.role_title, c.avatar_url, c.age, c.character_kind, c.quidditch_position, c.optional_courses, c.important_role, c.house_responsibility, c.sexual_orientation FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE u.account_status='approved' ORDER BY c.character_type, c.house NULLS LAST, c.first_name");
         return send(res, 200, { characters: r.rows });
       }
       if (action === "feed") {
-        const r = await databasePool.query("SELECT p.id,p.character_id,p.caption,p.image_url,p.created_at,c.first_name,c.last_name,c.avatar_url,c.house,(SELECT count(*) FROM instagram_likes l WHERE l.post_id=p.id) AS likes,(SELECT count(*) FROM instagram_comments cm WHERE cm.post_id=p.id) AS comments, (SELECT COALESCE(json_agg(json_build_object('id',cm.id,'body',cm.body,'characterName',cc.first_name || ' ' || cc.last_name) ORDER BY cm.created_at), '[]'::json) FROM instagram_comments cm JOIN characters cc ON cc.id=cm.character_id WHERE cm.post_id=p.id) AS comment_list, EXISTS(SELECT 1 FROM instagram_likes l WHERE l.post_id=p.id AND l.character_id=$1) AS liked FROM instagram_posts p JOIN characters c ON c.id=p.character_id ORDER BY p.created_at DESC LIMIT 100", [activeCharacter || null]);
+        const r = await databasePool.query("SELECT p.id,p.character_id,p.caption,COALESCE(p.image_url, CASE WHEN p.media_id IS NOT NULL THEN '/api/media?id=' || p.media_id::text ELSE NULL END) AS image_url,p.created_at,c.first_name,c.last_name,c.avatar_url,c.house,(SELECT count(*) FROM instagram_likes l WHERE l.post_id=p.id) AS likes,(SELECT count(*) FROM instagram_comments cm WHERE cm.post_id=p.id) AS comments, (SELECT COALESCE(json_agg(json_build_object('id',cm.id,'body',cm.body,'characterName',cc.first_name || ' ' || cc.last_name) ORDER BY cm.created_at), '[]'::json) FROM instagram_comments cm JOIN characters cc ON cc.id=cm.character_id WHERE cm.post_id=p.id) AS comment_list, EXISTS(SELECT 1 FROM instagram_likes l WHERE l.post_id=p.id AND l.character_id=$1) AS liked FROM instagram_posts p JOIN characters c ON c.id=p.character_id ORDER BY p.created_at DESC LIMIT 100", [activeCharacter || null]);
         return send(res, 200, { posts: r.rows });
       }
       if (action === "gazette") {
@@ -57,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const id = String(req.query.conversationId ?? "");
         const allowed = await databasePool.query("SELECT 1 FROM conversation_members WHERE conversation_id=$1 AND character_id=$2", [id, activeCharacter]);
         if (!allowed.rowCount) return send(res, 403, { error: "Conversation inaccessible." });
-        const r = await databasePool.query("SELECT m.id,m.body,m.sent_at,m.sender_character_id,c.first_name,c.last_name FROM messages m JOIN characters c ON c.id=m.sender_character_id WHERE m.conversation_id=$1 ORDER BY m.sent_at ASC LIMIT 300", [id]);
+        const r = await databasePool.query("SELECT m.id,m.body,m.sent_at,m.sender_character_id,c.first_name,c.last_name,m.media_id,ma.mime_type,CASE WHEN m.media_id IS NOT NULL THEN '/api/media?id=' || m.media_id::text ELSE NULL END AS media_url FROM messages m JOIN characters c ON c.id=m.sender_character_id LEFT JOIN media_assets ma ON ma.id=m.media_id WHERE m.conversation_id=$1 ORDER BY m.sent_at ASC LIMIT 300", [id]);
         return send(res, 200, { messages: r.rows });
       }
       if (action === "agenda") {
@@ -80,8 +80,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "POST") {
       if (action === "instagram-post") {
         if (!activeCharacter) return bad(res, "Personnage requis.");
-        if (!body.caption && !body.imageUrl) return bad(res, "Ajoute un texte ou une image.");
-        const r = await databasePool.query("INSERT INTO instagram_posts(character_id,caption,image_url) VALUES($1,$2,$3) RETURNING id", [activeCharacter, body.caption || null, body.imageUrl || null]);
+        if (!body.caption && !body.imageUrl && !body.mediaId) return bad(res, "Ajoute un texte ou un média.");
+        if (body.mediaId) { const m = await databasePool.query("SELECT id FROM media_assets WHERE id=$1 AND character_id=$2 AND media_kind='instagram'", [body.mediaId, activeCharacter]); if (!m.rowCount) return bad(res, "Média inaccessible."); }
+        const r = await databasePool.query("INSERT INTO instagram_posts(character_id,caption,image_url,media_id) VALUES($1,$2,$3,$4) RETURNING id", [activeCharacter, body.caption || null, body.imageUrl || null, body.mediaId || null]);
         return send(res, 201, { id: r.rows[0].id });
       }
       if (action === "instagram-unlike") {
@@ -121,10 +122,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return send(res, 201, { id: c.rows[0].id });
       }
       if (action === "message") {
-        if (!activeCharacter || !body.conversationId || !String(body.body ?? "").trim()) return bad(res, "Message invalide.");
+        if (!activeCharacter || !body.conversationId || (!String(body.body ?? "").trim() && !body.mediaId)) return bad(res, "Message invalide.");
         const allowed = await databasePool.query("SELECT 1 FROM conversation_members WHERE conversation_id=$1 AND character_id=$2", [body.conversationId, activeCharacter]);
         if (!allowed.rowCount) return send(res, 403, { error: "Conversation inaccessible." });
-        const r = await databasePool.query("INSERT INTO messages(conversation_id,sender_character_id,body) VALUES($1,$2,$3) RETURNING id", [body.conversationId, activeCharacter, String(body.body).trim()]);
+        if (body.mediaId) { const m = await databasePool.query("SELECT id FROM media_assets WHERE id=$1 AND character_id=$2 AND media_kind='message'", [body.mediaId, activeCharacter]); if (!m.rowCount) return bad(res, "Pièce jointe inaccessible."); }
+        const r = await databasePool.query("INSERT INTO messages(conversation_id,sender_character_id,body,media_id) VALUES($1,$2,$3,$4) RETURNING id", [body.conversationId, activeCharacter, String(body.body ?? "").trim(), body.mediaId || null]);
         await databasePool.query("UPDATE conversations SET updated_at=now() WHERE id=$1", [body.conversationId]);
         return send(res, 201, { id: r.rows[0].id });
       }
