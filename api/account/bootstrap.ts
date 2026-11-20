@@ -26,19 +26,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const discord = linkedAccount.rows[0];
+    const adminResult = await databasePool.query(
+      "SELECT EXISTS (SELECT 1 FROM app_admins WHERE discord_user_id = $1) AS is_admin",
+      [discord.discord_user_id],
+    );
+    const isAdmin = Boolean(adminResult.rows[0]?.is_admin);
+
     const playerResult = await databasePool.query(
-      'INSERT INTO app_users (discord_user_id, discord_username, discord_avatar_url) ' +
-      'VALUES ($1, $2, $3) ' +
+      'INSERT INTO app_users (discord_user_id, discord_username, discord_avatar_url, account_status) ' +
+      'VALUES ($1, $2, $3, $4) ' +
       'ON CONFLICT (discord_user_id) DO UPDATE ' +
       'SET discord_username = EXCLUDED.discord_username, ' +
-      'discord_avatar_url = EXCLUDED.discord_avatar_url, updated_at = now() ' +
+      'discord_avatar_url = EXCLUDED.discord_avatar_url, ' +
+      "account_status = CASE WHEN $4 = 'approved' THEN 'approved' ELSE app_users.account_status END, " +
+      'updated_at = now() ' +
       'RETURNING id, account_status',
-      [discord.discord_user_id, discord.discord_username ?? "Sorcière ou sorcier", discord.discord_avatar_url],
+      [discord.discord_user_id, discord.discord_username ?? "Sorcière ou sorcier", discord.discord_avatar_url, isAdmin ? "approved" : "pending"],
     );
 
     const player = playerResult.rows[0];
     const response: {
       accountStatus: string;
+      isAdmin: boolean;
       characters: Array<{
         id: string;
         firstName: string;
@@ -48,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         roleTitle: string | null;
         avatarUrl: string | null;
       }>;
-    } = { accountStatus: player.account_status, characters: [] };
+    } = { accountStatus: player.account_status, isAdmin, characters: [] };
 
     if (player.account_status === "approved") {
       const characterResult = await databasePool.query(
