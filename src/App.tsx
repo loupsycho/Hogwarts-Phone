@@ -2,43 +2,46 @@ import { useState } from 'react';
 import {
   Bell,
   CalendarDays,
-  Camera,
-  ChevronRight,
+  ChevronLeft,
   Contact,
+  HeartHandshake,
   Home,
+  Instagram,
   Mail,
-  Moon,
+  Newspaper,
   Sparkles,
-  UserRound,
+  Users,
   WandSparkles,
 } from 'lucide-react';
 
-type AppKey = 'home' | 'messages' | 'contacts' | 'social' | 'agenda' | 'profile';
+type AppKey = 'home' | 'messages' | 'instagram' | 'gazette' | 'contacts' | 'links' | 'agenda';
 
 const applications: {
-  key: AppKey;
+  key: Exclude<AppKey, 'home'>;
   label: string;
   description: string;
   icon: typeof Mail;
+  seal: string;
 }[] = [
-  { key: 'messages', label: 'Messages', description: 'Vos conversations', icon: Mail },
-  { key: 'contacts', label: 'Contacts', description: 'Les sorciers et sorcières', icon: Contact },
-  { key: 'social', label: 'Réseau', description: 'La Gazette et les publications', icon: Camera },
-  { key: 'agenda', label: 'Agenda', description: 'Vos rendez-vous', icon: CalendarDays },
-  { key: 'profile', label: 'Profil', description: 'Votre personnage', icon: UserRound },
+  { key: 'messages', label: 'Messages', description: 'Hiboux et conversations', icon: Mail, seal: 'I' },
+  { key: 'instagram', label: 'Instagram', description: 'La vie des sorciers', icon: Instagram, seal: 'II' },
+  { key: 'gazette', label: 'Gazette du Sorcier', description: 'Les nouvelles du monde magique', icon: Newspaper, seal: 'III' },
+  { key: 'contacts', label: 'Contacts', description: 'Maisons et personnel', icon: Contact, seal: 'IV' },
+  { key: 'links', label: 'Demandes de liens', description: 'Vos relations entre personnages', icon: HeartHandshake, seal: 'V' },
+  { key: 'agenda', label: 'Agenda', description: 'Événements et rendez-vous', icon: CalendarDays, seal: 'VI' },
 ];
 
 const pageCopy: Record<Exclude<AppKey, 'home'>, { title: string; subtitle: string }> = {
-  messages: { title: 'Messages', subtitle: 'Vos hiboux et conversations apparaîtront ici.' },
-  contacts: { title: 'Contacts', subtitle: 'Votre carnet de contacts magiques sera disponible ici.' },
-  social: { title: 'Réseau', subtitle: 'Les publications et actualités du monde magique apparaîtront ici.' },
-  agenda: { title: 'Agenda', subtitle: 'Vos cours, événements et rendez-vous seront réunis ici.' },
-  profile: { title: 'Mon profil', subtitle: 'Les informations de votre personnage seront affichées ici.' },
+  messages: { title: 'Messages', subtitle: 'Vos hiboux, conversations privées et groupes prendront place ici.' },
+  instagram: { title: 'Instagram', subtitle: 'Chaque personnage aura son profil et retrouvera les publications dans un fil commun.' },
+  gazette: { title: 'La Gazette du Sorcier', subtitle: 'Retrouvez les articles, rumeurs et actualités publiés dans le monde magique.' },
+  contacts: { title: 'Contacts', subtitle: 'Les élèves seront classés par maison. Le personnel disposera de sa propre catégorie professionnelle.' },
+  links: { title: 'Demandes de liens', subtitle: 'Envoyez, recevez et gérez les demandes de liens entre vos personnages.' },
+  agenda: { title: 'Agenda', subtitle: 'Retrouvez les événements, rendez-vous et dates importantes.' },
 };
 
 function App() {
   const [activeApp, setActiveApp] = useState<AppKey>('home');
-
   const openApp = (key: AppKey) => setActiveApp(key);
 
   return (
@@ -49,13 +52,13 @@ function App() {
       <section className="phone-frame" aria-label="Hogwarts Phone">
         <header className="status-bar">
           <span>9:41</span>
-          <span className="status-right"><Moon size={13} /> <span>Wi-Fi</span> <span className="battery">100%</span></span>
+          <span className="status-right"><span>✦</span><span>Wi-Fi</span><span className="battery">100%</span></span>
         </header>
 
         <div className="top-brand">
           <div className="crest"><WandSparkles size={25} /></div>
           <div>
-            <p className="eyebrow">LE MONDE MAGIQUE À PORTÉE DE MAIN</p>
+            <p className="eyebrow">HOGWARTS • A NEW ERA</p>
             <h1>Hogwarts <span>Phone</span></h1>
           </div>
           <button className="icon-button notification-button" aria-label="Notifications">
@@ -67,27 +70,28 @@ function App() {
         {activeApp === 'home' ? (
           <div className="screen-content">
             <section className="welcome-card">
-              <div className="welcome-stars"><Sparkles size={18} /></div>
-              <p className="eyebrow">BIENVENUE</p>
-              <h2>Votre monde<br /><em>vous attend.</em></h2>
-              <p className="welcome-copy">Retrouvez vos échanges, vos contacts et votre quotidien magique au même endroit.</p>
+              <div className="welcome-ornament">✦</div>
+              <p className="eyebrow">LE MONDE DES SORCIERS</p>
+              <h2>La magie<br /><em>dans votre poche.</em></h2>
+              <p className="welcome-copy">Votre courrier, vos rencontres et toute votre vie magique réunis dans un seul endroit.</p>
               <div className="welcome-rule"><span /> <WandSparkles size={15} /> <span /></div>
             </section>
 
             <div className="section-heading">
               <div>
-                <p className="eyebrow">VOTRE TÉLÉPHONE</p>
+                <p className="eyebrow">VOTRE QUOTIDIEN MAGIQUE</p>
                 <h3>Applications</h3>
               </div>
-              <span className="app-count">05</span>
+              <span className="app-count">06</span>
             </div>
 
             <div className="app-grid">
               {applications.map((app) => {
                 const Icon = app.icon;
                 return (
-                  <button className="app-tile" key={app.key} onClick={() => openApp(app.key)}>
-                    <span className="app-icon"><Icon size={22} strokeWidth={1.7} /></span>
+                  <button className={`app-tile app-${app.key}`} key={app.key} onClick={() => openApp(app.key)}>
+                    <span className="app-seal">{app.seal}</span>
+                    <span className="app-icon"><Icon size={22} strokeWidth={1.65} /></span>
                     <span className="app-label">{app.label}</span>
                     <span className="app-description">{app.description}</span>
                   </button>
@@ -95,21 +99,17 @@ function App() {
               })}
             </div>
 
-            <div className="coming-soon">
-              <div className="coming-icon"><Sparkles size={17} /></div>
-              <div>
-                <strong>La magie se prépare…</strong>
-                <p>Les connexions et les fonctionnalités arrivent étape par étape.</p>
-              </div>
-              <ChevronRight size={17} />
+            <div className="parchment-note">
+              <Sparkles size={16} />
+              <span>Une nouvelle ère commence à Poudlard.</span>
             </div>
           </div>
         ) : (
           <div className="screen-content subpage">
-            <button className="back-link" onClick={() => openApp('home')}><Home size={15} /> Retour à l'accueil</button>
+            <button className="back-link" onClick={() => openApp('home')}><ChevronLeft size={16} /> Retour aux applications</button>
             <div className="subpage-card">
-              <div className="subpage-icon"><WandSparkles size={26} /></div>
-              <p className="eyebrow">HOGWARTS PHONE</p>
+              <div className="subpage-icon"><WandSparkles size={27} /></div>
+              <p className="eyebrow">HOGWARTS • A NEW ERA</p>
               <h2>{pageCopy[activeApp].title}</h2>
               <p>{pageCopy[activeApp].subtitle}</p>
               <span className="feature-status">EN PRÉPARATION</span>
@@ -119,22 +119,22 @@ function App() {
 
         <nav className="bottom-nav" aria-label="Navigation principale">
           <button className={activeApp === 'home' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('home')}>
-            <Home size={19} /><span>Accueil</span>
+            <Home size={18} /><span>Accueil</span>
           </button>
           <button className={activeApp === 'messages' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('messages')}>
-            <Mail size={19} /><span>Messages</span>
+            <Mail size={18} /><span>Messages</span>
+          </button>
+          <button className={activeApp === 'gazette' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('gazette')}>
+            <Newspaper size={18} /><span>Gazette</span>
           </button>
           <button className={activeApp === 'contacts' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('contacts')}>
-            <Contact size={19} /><span>Contacts</span>
-          </button>
-          <button className={activeApp === 'profile' ? 'nav-item active' : 'nav-item'} onClick={() => openApp('profile')}>
-            <UserRound size={19} /><span>Profil</span>
+            <Users size={18} /><span>Contacts</span>
           </button>
         </nav>
         <div className="home-indicator" />
       </section>
 
-      <footer className="outside-caption">UN PETIT MORCEAU DE MAGIE, DANS VOTRE POCHE</footer>
+      <footer className="outside-caption">HOGWARTS • A NEW ERA</footer>
     </main>
   );
 }
