@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
   media_kind text NOT NULL CHECK (media_kind IN ('avatar','instagram','message','gallery')),
   mime_type text NOT NULL,
   file_name text NOT NULL,
-  byte_size integer NOT NULL CHECK (byte_size > 0 AND byte_size <= 12582912),
+  byte_size integer NOT NULL CHECK (byte_size > 0 AND byte_size <= 10485760),
   content bytea NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
