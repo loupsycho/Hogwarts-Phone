@@ -106,7 +106,13 @@ function App() {
         errorCallbackURL: window.location.origin,
       });
       if (result.error) {
-        setAuthError(result.error.message || 'Discord a refusé la demande de connexion. Réessaie dans un instant.');
+        const details = result.error as unknown as Record<string, unknown>;
+        const diagnostic = [
+          typeof details.message === 'string' ? details.message : '',
+          typeof details.code === 'string' ? 'Code : ' + details.code : '',
+          typeof details.status === 'number' ? 'HTTP : ' + details.status : '',
+        ].filter(Boolean).join(' · ');
+        setAuthError(diagnostic || 'Erreur de connexion : la réponse du serveur ne contient aucun détail. Il faudra consulter les journaux de la fonction API.');
         setIsSigningIn(false);
         return;
       }
