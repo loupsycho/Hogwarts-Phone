@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - setup/base-application
+      - rebuild/foundation
   pull_request:
     branches:
       - setup/base-application
