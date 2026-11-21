@@ -41,10 +41,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const id = String(req.query.id ?? "");
       if (!id) return reply(res, 400, { error: "Média introuvable." });
       const media = await databasePool.query(
-        "SELECT mime_type, file_name, content FROM media_assets WHERE id=$1",
+        "SELECT id, owner_user_id, character_id, media_kind, mime_type, file_name, content FROM media_assets WHERE id=$1",
         [id],
       );
       if (!media.rowCount) return reply(res, 404, { error: "Média introuvable." });
+      let canRead = media.rows[0].owner_user_id === user?.id || Boolean(admin.rows[0]?.yes);
+      if (!canRead && media.rows[0].media_kind === "avatar") {
+        const visible = await databasePool.query(
+          "SELECT 1 FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.profile_media_id=$1 AND u.account_status='approved'",
+          [id],
+        );
+        canRead = Boolean(visible.rowCount);
+      }
+      if (!canRead && media.rows[0].media_kind === "instagram") {
+        const visible = await databasePool.query(
+          "SELECT 1 FROM instagram_posts p JOIN characters c ON c.id=p.character_id JOIN app_users u ON u.id=c.owner_user_id WHERE p.media_id=$1 AND u.account_status='approved' LIMIT 1",
+          [id],
+        );
+        canRead = Boolean(visible.rowCount);
+      }
+      if (!canRead && media.rows[0].media_kind === "message") {
+        const visible = await databasePool.query(
+          "SELECT 1 FROM messages m JOIN conversation_members cm ON cm.conversation_id=m.conversation_id JOIN characters c ON c.id=cm.character_id WHERE m.media_id=$1 AND c.owner_user_id=$2 LIMIT 1",
+          [id, user?.id],
+        );
+        canRead = Boolean(visible.rowCount);
+      }
+      if (!canRead && media.rows[0].media_kind === "gallery") {
+        const visible = await databasePool.query(
+          "SELECT 1 FROM conversations cv JOIN conversation_members cm ON cm.conversation_id=cv.id JOIN characters c ON c.id=cm.character_id WHERE cv.avatar_media_id=$1 AND c.owner_user_id=$2 LIMIT 1",
+          [id, user?.id],
+        );
+        canRead = Boolean(visible.rowCount);
+      }
+      if (!canRead) return reply(res, 403, { error: "Tu n'as pas accès à ce média." });
       res.setHeader("Content-Type", media.rows[0].mime_type);
       res.setHeader("Content-Disposition", "inline; filename*=UTF-8''" + encodeURIComponent(media.rows[0].file_name));
       res.setHeader("X-Content-Type-Options", "nosniff");
