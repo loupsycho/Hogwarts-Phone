@@ -47,7 +47,7 @@ const categories = [
   { id: "Gryffindor", label: "🦁" },
   { id: "Ravenclaw", label: "🦅" },
   { id: "Hufflepuff", label: "🦡" },
-  { id: "staff", label: "Employés" }
+  { id: "staff", label: "Employé" }
 ];
 
 export default function ContactsApp({ characters, current, loadLinks, onMessage, onInstagram }: Props) {
