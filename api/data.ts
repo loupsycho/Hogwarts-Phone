@@ -60,6 +60,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const r = await databasePool.query("SELECT id,title,summary,body,category,published_at FROM gazette_articles WHERE publication_status='published' ORDER BY published_at DESC NULLS LAST");
         return send(res, 200, { articles: r.rows });
       }
+      if (action === "contact-links") {
+        const targetId = String(req.query.targetCharacterId ?? "");
+        if (!targetId) return bad(res, "Personnage requis.");
+        const target = await databasePool.query("SELECT c.id FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=$1 AND u.account_status='approved'", [targetId]);
+        if (!target.rowCount) return send(res, 404, { error: "Personnage introuvable." });
+        const r = await databasePool.query(
+          "SELECT lr.relationship_type, other.first_name, other.last_name FROM link_requests lr JOIN characters other ON other.id=CASE WHEN lr.from_character_id=$1 THEN lr.to_character_id ELSE lr.from_character_id END WHERE (lr.from_character_id=$1 OR lr.to_character_id=$1) AND lr.request_status='accepted' ORDER BY other.first_name, other.last_name",
+          [targetId]
+        );
+        return send(res, 200, { links: r.rows });
+      }
       if (action === "links") {
         const r = await databasePool.query("SELECT lr.*, f.first_name AS from_first_name,f.last_name AS from_last_name,f.sexual_orientation AS from_orientation,t.first_name AS to_first_name,t.last_name AS to_last_name,t.sexual_orientation AS to_orientation FROM link_requests lr JOIN characters f ON f.id=lr.from_character_id JOIN characters t ON t.id=lr.to_character_id WHERE lr.from_character_id=$1 OR lr.to_character_id=$1 ORDER BY lr.created_at DESC", [activeCharacter]);
         return send(res, 200, { requests: r.rows });
