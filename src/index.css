@@ -573,3 +573,19 @@ button {
 .group-avatar { width:38px; height:38px; flex:0 0 auto; object-fit:cover; border-radius:50%; border:1px solid #c5a56b80; }
 .notification-unread { border-color:#d6b87999; background:#c5a56b14; cursor:pointer; }
 .notification-read { opacity:.78; cursor:pointer; }
+
+/* Character selection: larger Hogwarts student ID cards */
+.character-selection-grid{display:grid;grid-template-columns:1fr;gap:15px;margin:18px 0 26px}
+.student-id-card{position:relative;width:100%;min-height:164px;display:flex;align-items:stretch;gap:15px;padding:12px;text-align:left;color:#f4ead7;border:1px solid #c5a56b88;border-radius:9px 9px 17px 9px;background:linear-gradient(120deg,#34252aee,#121b1bee 72%);box-shadow:inset 0 0 0 3px #c5a56b12,0 7px 18px #0004;cursor:pointer;overflow:hidden}
+.student-id-card:before{content:"";position:absolute;inset:5px;border:1px solid #c5a56b25;border-radius:6px 6px 13px 6px;pointer-events:none}
+.student-id-card:hover{border-color:#e1c58d;background:linear-gradient(120deg,#493039,#182725);transform:translateY(-1px)}
+.student-id-photo{position:relative;z-index:1;width:116px;min-width:116px;min-height:138px;display:grid;place-items:center;overflow:hidden;border:1px solid #c5a56b99;border-radius:5px;background:linear-gradient(145deg,#642d37,#292127);color:#d5b779}
+.student-id-photo img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover}
+.student-id-details{position:relative;z-index:1;min-width:0;display:flex;flex:1;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px;padding:7px 18px 7px 0}
+.student-id-kicker{font-size:8px!important;letter-spacing:.13em;color:#c5a56b!important}
+.student-id-details strong{font:600 23px/1.05 'Cormorant Garamond',serif;color:#f4e7ce;overflow-wrap:anywhere}
+.student-id-details>span:not(.student-id-house){font-size:11px;color:#c6b99f}
+.student-id-house{padding:5px 9px;border:1px solid #c5a56b66;border-radius:4px;color:#e2c98f;background:#c5a56b12;font-size:9px;letter-spacing:.06em}
+.student-id-arrow{position:absolute;right:13px;bottom:10px;color:#d5b779;font:24px 'Cormorant Garamond',serif}
+@media(min-width:700px){.character-selection-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.student-id-card{min-height:184px}.student-id-photo{width:130px;min-width:130px;min-height:158px}}
+@media(max-width:380px){.student-id-card{min-height:145px;gap:10px;padding:9px}.student-id-photo{width:98px;min-width:98px;min-height:125px}.student-id-details strong{font-size:20px}}
