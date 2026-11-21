@@ -595,3 +595,10 @@ button {
 .character-switch-action{margin-left:auto;flex:0 0 auto;min-height:38px;padding:8px 12px;border:1px solid #c5a56b88;border-radius:7px;background:linear-gradient(110deg,#71313d66,#25413c66);color:#f0d9a7;font:600 11px 'DM Sans',sans-serif;white-space:nowrap;cursor:pointer}
 .character-switch-action:hover,.character-switch-action:focus-visible{border-color:#e5c98e;background:#c5a56b24;outline:none}
 @media(max-width:380px){.character-switch-action{padding:7px 8px;font-size:10px}}
+
+
+/* Notification badges on character cards and app icons */
+.app-tile{position:relative}
+.notification-badge{position:absolute;z-index:4;display:inline-flex;align-items:center;justify-content:center;min-width:19px;height:19px;padding:0 5px;border:2px solid #17171b;border-radius:999px;background:#bd3547;color:#fff;font:700 10px/1 'DM Sans',sans-serif;box-shadow:0 2px 7px #0008}
+.character-notification-badge{top:9px;right:9px;min-width:23px;height:23px;font-size:11px}
+.app-notification-badge{top:9px;right:9px}
