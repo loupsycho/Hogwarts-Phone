@@ -589,3 +589,9 @@ button {
 .student-id-arrow{position:absolute;right:13px;bottom:10px;color:#d5b779;font:24px 'Cormorant Garamond',serif}
 @media(min-width:700px){.character-selection-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.student-id-card{min-height:184px}.student-id-photo{width:130px;min-width:130px;min-height:158px}}
 @media(max-width:380px){.student-id-card{min-height:145px;gap:10px;padding:9px}.student-id-photo{width:98px;min-width:98px;min-height:125px}.student-id-details strong{font-size:20px}}
+
+
+/* Clearly visible text action to switch characters */
+.character-switch-action{margin-left:auto;flex:0 0 auto;min-height:38px;padding:8px 12px;border:1px solid #c5a56b88;border-radius:7px;background:linear-gradient(110deg,#71313d66,#25413c66);color:#f0d9a7;font:600 11px 'DM Sans',sans-serif;white-space:nowrap;cursor:pointer}
+.character-switch-action:hover,.character-switch-action:focus-visible{border-color:#e5c98e;background:#c5a56b24;outline:none}
+@media(max-width:380px){.character-switch-action{padding:7px 8px;font-size:10px}}
