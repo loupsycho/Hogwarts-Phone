@@ -81,6 +81,7 @@ function App(){
  }
  async function loadAdmin(){try{const [admin,account]=await Promise.all([api("admin"),fetch("/api/account/bootstrap",{credentials:"include",cache:"no-store"})]);setAdminData(admin);if(account.ok){const data=await account.json();setCharacters(data.characters||[]);void refreshNotificationBadges(data.characters||[]);}}catch(e){setError(e instanceof Error?e.message:"Erreur admin.");}}
  useEffect(()=>{void loadAccount();},[]);
+ useEffect(()=>{if(screen!=="phone"||!current)return;let cancelled=false;const refresh=async()=>{try{const d=await api("notifications","GET",{}, {characterId:current.id});if(!cancelled)setNotificationsByCharacter(prev=>({...prev,[current.id]:(d.notifications||[]).filter((n:any)=>!n.read_at)}));}catch{}};void refresh();const timer=window.setInterval(()=>void refresh(),15000);return()=>{cancelled=true;window.clearInterval(timer);};},[screen,current?.id]);
  async function loadApp(key:AppKey,character=current){
   setActive(key);setNotice("");if(!character||key==="home")return;
   const targetTypes:Partial<Record<AppKey,string[]>>={messages:["conversation"],links:["link_request"],agenda:["agenda_event"],instagram:["instagram_post","instagram_profile"]};
