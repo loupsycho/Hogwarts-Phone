@@ -113,7 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       if (action === "instagram-comment") {
         if (!activeCharacter || !body.postId || !String(body.body ?? "").trim()) return bad(res, "Commentaire invalide.");
-        await databasePool.query("INSERT INTO instagram_comments(post_id,character_id,body) VALUES($1,$2,$3)", [activeCharacter, body.postId, String(body.body).trim()]);
+        await databasePool.query("INSERT INTO instagram_comments(post_id,character_id,body) VALUES($1,$2,$3)", [body.postId, activeCharacter, String(body.body).trim()]);
         const owner = await databasePool.query("SELECT character_id FROM instagram_posts WHERE id=$1", [body.postId]); if (owner.rowCount && owner.rows[0].character_id !== activeCharacter) await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'instagram_comment','Nouveau commentaire','Une personne a commenté votre publication.','instagram_post',$2)", [owner.rows[0].character_id,body.postId]);
         return send(res, 201, { ok: true });
       }
