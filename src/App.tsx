@@ -124,7 +124,8 @@ function App(){
    const authenticated=await discordSdk.commands.authenticate({access_token:result.access_token});
    if(!authenticated)throw new Error("Discord n'a pas confirmé ton identité.");
    await loadAccount();
-  }catch(e){setError(e instanceof Error?e.message:"Connexion Discord impossible.");setBusy(false);}
+  }catch(e){setError(e instanceof Error?e.message:"Connexion Discord impossible.");}
+  finally{setBusy(false);}
  }
  async function submit(action:string,data:Record<string,unknown>,refresh?:()=>Promise<void>){setBusy(true);setNotice("");try{await api(action,"POST",{...data,characterId:current?.id});setNotice("C'est enregistré.");if(refresh)await refresh();}catch(e){setNotice(e instanceof Error?e.message:"Enregistrement impossible.");}finally{setBusy(false);}}
  async function openConversation(id:string){setSelectedConversation(id);try{const d=await api("messages","GET",{}, {characterId:current!.id,conversationId:id});setMessages(d.messages||[]);}catch(e){setNotice(e instanceof Error?e.message:"Chargement impossible.");}}
