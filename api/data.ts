@@ -65,14 +65,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return send(res, 200, { requests: r.rows });
       }
       if (action === "conversations") {
-        const r = await databasePool.query("SELECT c.id,c.conversation_type,c.title,c.updated_at,CASE WHEN c.avatar_media_id IS NOT NULL THEN '/api/media?id='||c.avatar_media_id::text ELSE NULL END AS avatar_url, (SELECT string_agg(ch.first_name || ' ' || ch.last_name, ', ') FROM conversation_members cm JOIN characters ch ON ch.id=cm.character_id WHERE cm.conversation_id=c.id AND ch.id<>$1) AS participants, (SELECT COALESCE(NULLIF(m.body,''), CASE WHEN m.media_id IS NOT NULL THEN 'Pièce jointe' ELSE NULL END) FROM messages m WHERE m.conversation_id=c.id ORDER BY m.sent_at DESC LIMIT 1) AS last_message FROM conversations c JOIN conversation_members mine ON mine.conversation_id=c.id WHERE mine.character_id=$1 ORDER BY c.updated_at DESC", [activeCharacter]);
+        const r = await databasePool.query("SELECT c.id,c.conversation_type,c.title,c.updated_at,CASE WHEN c.avatar_media_id IS NOT NULL THEN '/api/media?id='||c.avatar_media_id::text ELSE NULL END AS avatar_url, (SELECT string_agg(ch.first_name || ' ' || ch.last_name, ', ') FROM conversation_members cm JOIN characters ch ON ch.id=cm.character_id WHERE cm.conversation_id=c.id AND ch.id<>$1) AS participants, (SELECT ch.avatar_url FROM conversation_members cm JOIN characters ch ON ch.id=cm.character_id WHERE cm.conversation_id=c.id AND ch.id<>$1 ORDER BY ch.first_name LIMIT 1) AS participant_avatar_url, (SELECT COALESCE(NULLIF(m.body,''), CASE WHEN m.media_id IS NOT NULL THEN 'Photo' ELSE NULL END) FROM messages m WHERE m.conversation_id=c.id ORDER BY m.sent_at DESC LIMIT 1) AS last_message FROM conversations c JOIN conversation_members mine ON mine.conversation_id=c.id WHERE mine.character_id=$1 ORDER BY c.updated_at DESC", [activeCharacter]);
         return send(res, 200, { conversations: r.rows });
       }
       if (action === "messages") {
         const id = String(req.query.conversationId ?? "");
         const allowed = await databasePool.query("SELECT 1 FROM conversation_members WHERE conversation_id=$1 AND character_id=$2", [id, activeCharacter]);
         if (!allowed.rowCount) return send(res, 403, { error: "Conversation inaccessible." });
-        const r = await databasePool.query("SELECT m.id,m.body,m.sent_at,m.sender_character_id,c.first_name,c.last_name,m.media_id,ma.mime_type,CASE WHEN m.media_id IS NOT NULL THEN '/api/media?id=' || m.media_id::text ELSE NULL END AS media_url FROM messages m JOIN characters c ON c.id=m.sender_character_id LEFT JOIN media_assets ma ON ma.id=m.media_id WHERE m.conversation_id=$1 ORDER BY m.sent_at ASC LIMIT 300", [id]);
+        const r = await databasePool.query("SELECT m.id,m.body,m.sent_at,m.sender_character_id,c.first_name,c.last_name,c.avatar_url,m.media_id,ma.mime_type,CASE WHEN m.media_id IS NOT NULL THEN '/api/media?id=' || m.media_id::text ELSE NULL END AS media_url FROM messages m JOIN characters c ON c.id=m.sender_character_id LEFT JOIN media_assets ma ON ma.id=m.media_id WHERE m.conversation_id=$1 ORDER BY m.sent_at ASC LIMIT 300", [id]);
         return send(res, 200, { messages: r.rows });
       }
       if (action === "agenda") {
@@ -137,6 +137,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const check = await databasePool.query("SELECT c.id FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=ANY($1::uuid[]) AND u.account_status='approved'", [ids]);
         if (check.rowCount !== ids.length) return bad(res, "Un destinataire est invalide.");
         if (body.avatarMediaId) { const media = await databasePool.query("SELECT id FROM media_assets WHERE id=$1 AND character_id=$2 AND media_kind='gallery'", [body.avatarMediaId,activeCharacter]); if (!media.rowCount) return bad(res,"Photo de groupe inaccessible."); }
+        if (ids.length === 2) {
+          const existing = await databasePool.query("SELECT c.id FROM conversations c WHERE c.conversation_type='direct' AND EXISTS(SELECT 1 FROM conversation_members cm WHERE cm.conversation_id=c.id AND cm.character_id=$1) AND EXISTS(SELECT 1 FROM conversation_members cm WHERE cm.conversation_id=c.id AND cm.character_id=$2) AND (SELECT count(*) FROM conversation_members cm WHERE cm.conversation_id=c.id)=2 LIMIT 1", [ids[0],ids[1]]);
+          if (existing.rowCount) return send(res, 200, { id: existing.rows[0].id });
+        }
         const c = await databasePool.query("INSERT INTO conversations(conversation_type,title,created_by_character_id,avatar_media_id) VALUES($1,$2,$3,$4) RETURNING id", [ids.length > 2 ? "group" : "direct", body.title || null, activeCharacter,body.avatarMediaId||null]);
         await databasePool.query("INSERT INTO conversation_members(conversation_id,character_id) SELECT $1, unnest($2::uuid[])", [c.rows[0].id, ids]);
         if (ids.length > 2) await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) SELECT unnest($1::uuid[]),'group_invite','Nouveau groupe',$2,'conversation',$3", [ids.filter(id=>id!==activeCharacter),body.title||"Vous avez été ajouté à un groupe.",c.rows[0].id]);
