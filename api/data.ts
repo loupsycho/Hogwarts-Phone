@@ -203,7 +203,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!body.ownerUserId || !body.firstName || !body.lastName || !["student","staff"].includes(body.characterType) || !["OC","Saga"].includes(body.characterKind)) return bad(res, "Fiche personnage incomplète.");
         const student = body.characterType === "student";
         const age = student ? 17 : Number(body.age);
-        if (!student && (!Number.isInteger(age) || age < 17 || age > 100)) return bad(res, "L'âge de l'employé est invalide.");
+        if (!student && (!Number.isInteger(age) || age < 18 || age > 300)) return bad(res, "L'âge de l'employé doit être compris entre 18 et 300 ans.");
         if (student && !["Gryffindor","Slytherin","Ravenclaw","Hufflepuff"].includes(body.house)) return bad(res, "Choisis une maison.");
         const courses = Array.isArray(body.optionalCourses) ? body.optionalCourses.map(String) : [];
         const r = await databasePool.query(
@@ -241,7 +241,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!body.firstName || !body.lastName || !["student","staff"].includes(body.characterType) || !["OC","Saga"].includes(body.characterKind)) return bad(res, "Fiche personnage incomplète.");
         const student = body.characterType === "student";
         const age = student ? 17 : Number(body.age);
-        if (!student && (!Number.isInteger(age) || age < 17 || age > 100)) return bad(res, "L'âge de l'employé est invalide.");
+        if (!student && (!Number.isInteger(age) || age < 18 || age > 300)) return bad(res, "L'âge de l'employé doit être compris entre 18 et 300 ans.");
         const courses = Array.isArray(body.optionalCourses) ? body.optionalCourses.map(String) : [];
         const r = await databasePool.query(
           "UPDATE characters SET first_name=$1,last_name=$2,character_type=$3,house=$4,role_title=$5,age=$6,character_kind=$7,quidditch_position=$8,optional_courses=$9,important_role=$10,house_responsibility=$11,updated_at=now() WHERE id=$12 RETURNING id",
