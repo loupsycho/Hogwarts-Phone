@@ -4,6 +4,7 @@ import agenda from "../serverless/agenda.js";
 import data from "../serverless/data.js";
 import groups from "../serverless/groups.js";
 import instagram from "../serverless/instagram.js";
+import links from "../serverless/links.js";
 import media from "../serverless/media.js";
 import profile from "../serverless/profile.js";
 import token from "../serverless/token.js";
@@ -17,6 +18,7 @@ const routes: Record<string, (req: VercelRequest, res: VercelResponse) => unknow
   data,
   groups,
   instagram,
+  links,
   media,
   profile,
   token,
