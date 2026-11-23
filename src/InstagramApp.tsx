@@ -127,6 +127,8 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
   useEffect(() => {
     void loadFeed().catch(error => setNotice(error instanceof Error ? error.message : "Fil indisponible."));
     void loadNotifications().catch(() => undefined);
+    const timer = window.setInterval(() => { void loadNotifications().catch(() => undefined); }, 15000);
+    return () => window.clearInterval(timer);
   }, [current.id]);
 
   useEffect(() => {
