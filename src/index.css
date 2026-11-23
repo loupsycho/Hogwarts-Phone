@@ -760,3 +760,5 @@ button {
 .portal-choice-card{position:relative}
 .admin-gazette-entry{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0 14px}
 .admin-gazette-entry .admin-notification-dot{margin-left:2px}
+
+.portal-choice-card>.admin-notification-dot{position:absolute;top:12px;right:35px}
