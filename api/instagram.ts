@@ -118,6 +118,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "POST") {
       if (!characterId) return send(res, 400, { error: "Personnage requis." });
 
+      if (action === "delete-post") {
+        const postId = String(body.postId ?? "");
+        if (!postId) return send(res, 400, { error: "Publication requise." });
+        const deleted = await databasePool.query(
+          "DELETE FROM instagram_posts WHERE id=$1 AND character_id=$2 RETURNING id",
+          [postId, characterId],
+        );
+        return send(res, deleted.rowCount ? 200 : 404, { ok: Boolean(deleted.rowCount), error: deleted.rowCount ? undefined : "Publication introuvable ou tu n’en es pas l’auteur." });
+      }
+
       if (action === "post") {
         if (!body.caption && !body.mediaId) return send(res, 400, { error: "Ajoute une légende ou une photo/vidéo." });
         if (body.mediaId) {
