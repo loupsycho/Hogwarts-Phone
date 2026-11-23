@@ -36,7 +36,8 @@ async function prepareInstagramUpload(file: File): Promise<File> {
     if (file.size > limit) throw new Error("La vidéo doit faire 2,8 Mo maximum pour être envoyée.");
     return file;
   }
-  if (!file.type.startsWith("image/") || file.size <= limit) return file;
+  if (!file.type.startsWith("image/")) return file;
+  if (file.size <= limit && ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) return file;
   const url = URL.createObjectURL(file);
   try {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -242,7 +243,14 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
       if (item.target_type === "instagram_profile" && item.target_id) {
         await openProfile(item.target_id);
       } else if (item.target_type === "instagram_post" && item.target_id) {
-        await loadFeed();
+        const [allPosts, targetPost] = await Promise.all([
+          call("feed"),
+          call("feed", "GET", {}, { postId: item.target_id }),
+        ]);
+        const posts = allPosts.posts || [];
+        const selectedPost = (targetPost.posts || [])[0];
+        if (selectedPost && !posts.some((post: any) => post.id === selectedPost.id)) posts.unshift(selectedPost);
+        setFeed(posts);
         setHighlightPost(item.target_id);
         setSection("feed");
         window.setTimeout(() => {
