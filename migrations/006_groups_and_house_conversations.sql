@@ -59,3 +59,5 @@ FROM conversations c
 JOIN characters ch ON ch.character_type='student' AND ch.house=c.house
 WHERE c.group_kind='house'
 ON CONFLICT DO NOTHING;
+
+UPDATE notifications n SET notification_type=CASE WHEN n.notification_type='message' THEN 'group_message' ELSE n.notification_type END,target_type='group_conversation' FROM conversations c WHERE c.id=n.target_id AND c.conversation_type='group' AND n.target_type='conversation';
