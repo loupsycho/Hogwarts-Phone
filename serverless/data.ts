@@ -160,7 +160,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const r = await databasePool.query("INSERT INTO messages(conversation_id,sender_character_id,body,media_id) VALUES($1,$2,$3,$4) RETURNING id", [body.conversationId, activeCharacter, String(body.body ?? "").trim(), body.mediaId || null]);
         await databasePool.query("UPDATE conversations SET updated_at=now() WHERE id=$1", [body.conversationId]);
         const recipients = await databasePool.query("SELECT character_id FROM conversation_members WHERE conversation_id=$1 AND character_id<>$2", [body.conversationId,activeCharacter]);
-        for (const recipient of recipients.rows) await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'message','Nouveau hibou',$2,'conversation',$3)", [recipient.character_id,String(body.body??"").trim()?"Vous avez reçu un nouveau message.":"Vous avez reçu une pièce jointe.",body.conversationId]);
+        const linkDiscussion = await databasePool.query("SELECT id FROM link_discussions WHERE conversation_id=$1", [body.conversationId]);
+        for (const recipient of recipients.rows) {
+          if (linkDiscussion.rowCount) {
+            await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'link_discussion_message','Nouveau message dans une discussion de lien',$2,'link_discussion',$3)", [recipient.character_id,String(body.body??"").trim()?"Tu as reçu un nouveau message dans une discussion de lien.":"Tu as reçu une pièce jointe dans une discussion de lien.",linkDiscussion.rows[0].id]);
+          } else {
+            await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'message','Nouveau hibou',$2,'conversation',$3)", [recipient.character_id,String(body.body??"").trim()?"Vous avez reçu un nouveau message.":"Vous avez reçu une pièce jointe.",body.conversationId]);
+          }
+        }
         return send(res, 201, { id: r.rows[0].id });
       }
       if (action === "agenda-invite") {
