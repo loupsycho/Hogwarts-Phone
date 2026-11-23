@@ -138,6 +138,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
            FROM instagram_follows f WHERE f.followed_character_id=$1 AND f.follower_character_id<>$1`,
           [characterId, [author?.first_name, author?.last_name].filter(Boolean).join(" "), post.rows[0].id],
         );
+        const mentionedIds = Array.isArray(body.mentionCharacterIds)
+          ? [...new Set(body.mentionCharacterIds.map(String).filter((id: string) => id && id !== characterId))]
+          : [];
+        if (mentionedIds.length) {
+          const mentioned = await databasePool.query(
+            `SELECT c.id FROM characters c JOIN app_users u ON u.id=c.owner_user_id
+             WHERE c.id=ANY($1::uuid[]) AND u.account_status='approved'`,
+            [mentionedIds],
+          );
+          for (const person of mentioned.rows) {
+            await databasePool.query(
+              "INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'instagram_mention','Vous avez été identifié(e)',$2,'instagram_post',$3)",
+              [person.id, `${author?.first_name ?? "Un personnage"} vous a identifié dans son post.`, post.rows[0].id],
+            );
+          }
+        }
         return send(res, 201, { id: post.rows[0].id });
       }
 
@@ -243,6 +259,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             [body.targetCharacterId, `${actor?.first_name ?? "Un personnage"} s’est abonné à votre compte.`, characterId],
           );
         }
+        return send(res, 200, { ok: true });
+      }
+
+      if (action === "read-all-notifications") {
+        await databasePool.query(
+          "UPDATE notifications SET read_at=COALESCE(read_at,now()) WHERE character_id=$1 AND notification_type LIKE 'instagram_%'",
+          [characterId],
+        );
         return send(res, 200, { ok: true });
       }
 
