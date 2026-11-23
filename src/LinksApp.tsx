@@ -158,7 +158,7 @@ export default function LinksApp({current}:Props){
 
  return <section className="links-app">
   <div className="links-tabs" role="tablist" aria-label="Demandes de liens">
-   {[["mine","Ma demande"],["browse","Liens recherchés"],["requests","Demandes en cours"],["relationships","Mes liens"],["discussions","Discussions"]].map(([id,label])=><button type="button" key={id} className={tab===id?"active":""} onClick={()=>{setTab(id);setNotice("");}}>{label}</button>)}
+   {[["mine","Ma demande de liens"],["browse","Liens recherchés"],["requests","Demandes en cours"],["relationships","Mes liens"],["discussions","Discussions de liens"]].map(([id,label])=><button type="button" key={id} className={tab===id?"active":""} onClick={()=>{setTab(id);setNotice("");}}>{label}</button>)}
   </div>
   {notice&&<p className="links-notice">{notice}</p>}
 
