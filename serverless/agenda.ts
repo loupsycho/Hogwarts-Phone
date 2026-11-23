@@ -15,7 +15,7 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
   const actorResult=await databasePool.query("SELECT id,owner_user_id,first_name,last_name,character_type,house FROM characters WHERE id=$1",[characterId]);
   if(!actorResult.rowCount||(!isAdmin&&actorResult.rows[0].owner_user_id!==user?.id))return send(res,403,{error:"Personnage inaccessible."});
   const action=String(req.query.action??body.action??"");
-  const query=`SELECT e.*,mine.response AS my_response,cr.first_name AS creator_first_name,cr.last_name AS creator_last_name,cu.discord_username AS creator_username,
+  const query=`SELECT e.*,mine.response AS my_response,(e.created_by_character_id=$1 OR (e.created_by_character_id IS NULL AND e.created_by_user_id=(SELECT owner_user_id FROM characters WHERE id=$1))) AS can_delete,cr.first_name AS creator_first_name,cr.last_name AS creator_last_name,cu.discord_username AS creator_username,
    COALESCE((SELECT json_agg(json_build_object('character_id',p.character_id,'first_name',pc.first_name,'last_name',pc.last_name,'discord_username',pu.discord_username,'response',p.response) ORDER BY CASE p.response WHEN 'accepted' THEN 1 WHEN 'declined' THEN 2 ELSE 3 END,pc.first_name,pc.last_name) FROM agenda_event_participants p JOIN characters pc ON pc.id=p.character_id JOIN app_users pu ON pu.id=pc.owner_user_id WHERE p.event_id=e.id),'[]'::json) AS participants
    FROM agenda_events e LEFT JOIN agenda_event_participants mine ON mine.event_id=e.id AND mine.character_id=$1
    LEFT JOIN characters cr ON cr.id=e.created_by_character_id LEFT JOIN app_users cu ON cu.id=cr.owner_user_id

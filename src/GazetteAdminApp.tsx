@@ -78,7 +78,7 @@ export default function GazetteAdminApp(){
   }
   async function deleteArticle(article:AdminArticle){
     if(!window.confirm("Supprimer définitivement cette publication ?"))return;
-    try{await call("admin-article","DELETE",{articleId:article.id});await refresh();setNotice("Publication supprimée.");}
+    try{await call("admin-delete-article","POST",{articleId:article.id});await refresh();setNotice("Publication supprimée.");}
     catch(e){setNotice(e instanceof Error?e.message:"Suppression impossible.");}
   }
 

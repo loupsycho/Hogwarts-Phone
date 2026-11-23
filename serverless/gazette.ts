@@ -167,6 +167,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return send(res, 201, { id: inserted.rows[0].id });
       }
 
+      if (action === "admin-delete-article") {
+        if (!isAdmin) return send(res, 403, { error: "Réservé à l'administration." });
+        const articleId = String(body.articleId ?? "");
+        if (!articleId) return bad(res, "Publication introuvable.");
+        const client = await databasePool.connect();
+        try {
+          await client.query("BEGIN");
+          await client.query("DELETE FROM notifications WHERE target_type='gazette_article' AND target_id=$1", [articleId]);
+          const deleted = await client.query("DELETE FROM gazette_articles WHERE id=$1 RETURNING id", [articleId]);
+          await client.query("COMMIT");
+          return send(res, deleted.rowCount ? 200 : 404, { ok: Boolean(deleted.rowCount) });
+        } catch (error) {
+          await client.query("ROLLBACK");
+          throw error;
+        } finally {
+          client.release();
+        }
+      }
+
       if (action === "admin-avatar") {
         if (!isAdmin || !player?.id) return send(res, 403, { error: "Réservé à l'administration." });
         const mediaId = String(body.mediaId ?? "");
