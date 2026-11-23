@@ -100,7 +100,7 @@ function App(){
    if(key==="instagram"){const d=await api("feed","GET",{}, {characterId:character.id});setFeed(d.posts||[]);}
    if(key==="gazette"){const d=await api("gazette");setArticles(d.articles||[]);}
    if(key==="links"){const people=await api("contacts");setContacts(people.characters||[]);const d=await api("links","GET",{}, {characterId:character.id});setLinks(d.requests||[]);}
-   if(key==="agenda"){const people=await api("contacts");setContacts(people.characters||[]);const d=await api("agenda","GET",{}, {characterId:character.id});setEvents(d.events||[]);}
+   if(key==="agenda"){setEvents([]);}
    if(key==="profile"){const d=await fetch("/api/profile?characterId="+encodeURIComponent(character.id),{credentials:"include",headers:sessionHeaders()}).then(r=>r.json());setNotice(d.sexualOrientation||"Orientation non renseignée.");}
    if(key==="instagram"){const d=await api("following","GET",{}, {characterId:character.id});setFollowing(d.characters||[]);setSelectedInstagramProfile(null);setInstagramProfile(null);}
    if(key==="messages"){const people=await api("contacts");setContacts(people.characters||[]);const d=await api("conversations","GET",{}, {characterId:character.id});setConversations(d.conversations||[]);setSelectedConversation("");setMessages([]);setMessageSection("conversations");setConversationSearch("");setSearch("");setUploadedMessage(null);}
