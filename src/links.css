@@ -1,5 +1,5 @@
 .links-app{display:flex;flex-direction:column;gap:13px;padding:2px 0 22px;color:#eee3cf}
-.links-tabs{display:flex;gap:6px;overflow-x:auto;padding:3px 0 8px;border-bottom:1px solid #c5a56b35;scrollbar-width:thin}
+.links-tabs{position:sticky;top:0;z-index:5;background:#090e0f;padding-top:8px;display:flex;gap:6px;overflow-x:auto;padding:3px 0 8px;border-bottom:1px solid #c5a56b35;scrollbar-width:thin}
 .links-tabs button,.links-subtabs button,.links-history-switch button,.links-category-strip button{flex:0 0 auto;padding:9px 11px;border:1px solid #c5a56b35;border-radius:8px;background:#101615;color:#c9bda7;font:600 10px 'DM Sans',sans-serif}
 .links-tabs button.active,.links-subtabs button.active,.links-history-switch button.active,.links-category-strip button.active{border-color:#c5a56b;background:#c5a56b22;color:#f2d69e}
 .links-notice{margin:0;padding:10px;border:1px solid #c5a56b55;border-radius:8px;background:#111817;color:#ead7b5;font:11px/1.5 'DM Sans',sans-serif}
