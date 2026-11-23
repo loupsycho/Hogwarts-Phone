@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "SELECT c.id,c.first_name,c.last_name,c.character_type,c.house,c.avatar_url,c.sexual_orientation,c.role_title,c.biography FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=$1 AND u.account_status='approved'",
       [id],
     );
-    const isFamily = (category: string, type: string) => category === "family" || /^(frère|soeur|sœur|père|mère|oncle|tante|cousin|cousine|famille)/i.test(type.trim());
+    const isFamily = (category: string, type: string) => category === "family" && /(frère|soeur|sœur|père|mère|oncle|tante|cousin|cousine|familial|famille|grand[- ]?(père|mère)|neveu|nièce|beau-frère|belle-soeur)/i.test(type.trim());
 
     if (req.method === "GET" && action === "dashboard") {
       const [profile, profiles, requests, relationships, discussions] = await Promise.all([
@@ -99,7 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const rawRelationshipType = String(body.relationshipType ?? "").trim().slice(0, 120);
       const category = categories.has(String(body.relationshipCategory ?? "")) ? String(body.relationshipCategory) : "other";
       if (!targetId || targetId === characterId || !rawRelationshipType) return bad(res, "Proposition invalide.");
-      const relationshipType = category === "other" && !/^autre\\s*:/i.test(rawRelationshipType) ? "Autre : " + rawRelationshipType : rawRelationshipType;
+      const relationshipType = category === "other" && !/^autre\s*:/i.test(rawRelationshipType) ? "Autre : " + rawRelationshipType : rawRelationshipType;
       const target = await availableCharacter(targetId);
       if (!target.rowCount) return send(res, 404, { error: "Ce personnage n'est pas disponible." });
       const published = await databasePool.query("SELECT 1 FROM link_profiles WHERE character_id=$1", [targetId]);
@@ -139,7 +139,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const requestId = String(body.requestId ?? ""), rawRelationshipType = String(body.relationshipType ?? "").trim().slice(0,120);
       const category = categories.has(String(body.relationshipCategory ?? "")) ? String(body.relationshipCategory) : "other";
       if (!requestId || !rawRelationshipType) return bad(res, "Proposition invalide.");
-      const relationshipType = category === "other" && !/^autre\\s*:/i.test(rawRelationshipType) ? "Autre : " + rawRelationshipType : rawRelationshipType;
+      const relationshipType = category === "other" && !/^autre\s*:/i.test(rawRelationshipType) ? "Autre : " + rawRelationshipType : rawRelationshipType;
       const target = await databasePool.query("SELECT to_character_id FROM link_requests WHERE id=$1 AND from_character_id=$2 AND request_status='pending'", [requestId,characterId]);
       if (!target.rowCount) return send(res, 404, { error: "Cette proposition ne peut plus être modifiée." });
       const targetPerson = await availableCharacter(target.rows[0].to_character_id);
@@ -173,7 +173,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const published = await databasePool.query("SELECT 1 FROM link_profiles WHERE character_id=$1", [targetId]);
       if (!published.rowCount) return send(res,409,{error:"Ce personnage n'a pas publié sa demande de liens."});
       if (requestId) {
-        const existing = await databasePool.query("SELECT conversation_id FROM link_discussions WHERE request_id=$1 AND (character_a_id=$2 OR character_b_id=$2)", [requestId,characterId]);
+        const existing = await databasePool.query("SELECT conversation_id FROM link_discussions WHERE request_id=$1 AND ((character_a_id=$2 AND character_b_id=$3) OR (character_b_id=$2 AND character_a_id=$3))", [requestId,characterId,targetId]);
         if (existing.rowCount) return send(res,200,{conversationId:existing.rows[0].conversation_id});
       }
       const client = await databasePool.connect();
