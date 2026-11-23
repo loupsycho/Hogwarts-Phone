@@ -754,3 +754,9 @@ button {
 .agenda-detail.content-card{border-color:#c5a56b77;}
 
 .agenda-event-chip{background:color-mix(in srgb,var(--event-color) 38%,#151a18)!important;}
+
+
+.admin-notification-dot{display:inline-block;width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#d34b54;box-shadow:0 0 0 3px #d34b5425}
+.portal-choice-card{position:relative}
+.admin-gazette-entry{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0 14px}
+.admin-gazette-entry .admin-notification-dot{margin-left:2px}
