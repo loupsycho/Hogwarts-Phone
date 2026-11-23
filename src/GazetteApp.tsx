@@ -34,7 +34,7 @@ export default function GazetteApp({current,uploadMedia}:Props){
   }
   async function refresh(){
     const [feed,thread]=await Promise.all([call("feed"),call("thread")]);
-    setArticles(feed.articles||[]);setAvatarUrl(feed.avatarUrl||null);setMessages(thread.messages||[]);
+    setArticles(feed.articles||[]);setAvatarUrl(feed.avatarUrl||null);setMessages(thread.messages||[]);if((thread.messages||[]).some((m:GazetteMessage)=>m.sender_type==="gazette"))setThreadOpen(true);
   }
   useEffect(()=>{void refresh().catch(e=>setNotice(e.message));const timer=window.setInterval(()=>void refresh().catch(()=>{}),15000);return()=>window.clearInterval(timer);},[current.id]);
 
@@ -62,7 +62,7 @@ export default function GazetteApp({current,uploadMedia}:Props){
       <div className="gazette-edition-line"><span>ÉDITION DE POUDLARD</span><span>INFORMER • RÉVÉLER • DÉVOILER</span></div>
     </header>
 
-    <div className="gazette-public-toolbar"><span>DERNIÈRES PUBLICATIONS</span><button type="button" onClick={()=>setThreadOpen(v=>!v)}><MessageCircle size={15}/> Écrire à la Gazette {messages.length>0&&<i>{messages.length}</i>}</button></div>
+    <div className="gazette-public-toolbar"><span>DERNIÈRES PUBLICATIONS</span><button type="button" onClick={()=>setThreadOpen(v=>!v)}><MessageCircle size={15}/> {messages.length>0?"Courrier privé":"Écrire à la Gazette"} {messages.length>0&&<i>{messages.length}</i>}</button></div>
     {notice&&<p className="gazette-notice">{notice}</p>}
     {articles.map((article,index)=><article className={"gazette-article "+(index===0?"lead":"")} key={article.id}>
       <div className="gazette-byline">{avatarUrl?<img src={avatarUrl} alt=""/>:<span><Newspaper size={13}/></span>}<strong>La Gazette du Sorcier</strong></div>
