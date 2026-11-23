@@ -146,8 +146,9 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
   async function openNotifications() {
     setSection("notifications");
     try {
+      await loadNotifications();
       await call("read-all-notifications", "POST");
-      setNotifications(previous => previous.map(item => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
+      await loadNotifications();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Notifications indisponibles.");
     }
@@ -244,6 +245,9 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
         await loadFeed();
         setHighlightPost(item.target_id);
         setSection("feed");
+        window.setTimeout(() => {
+          document.getElementById("instagram-post-" + item.target_id)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 120);
       }
     } catch (error) { setNotice(error instanceof Error ? error.message : "Notification indisponible."); }
   }
@@ -298,7 +302,7 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
 
       {section === "feed" && <div className="instagram-feed">
         {feed.length === 0 && <div className="instagram-empty"><Camera size={25} /><strong>Aucune publication pour le moment</strong><span>Les photos et vidéos de la communauté apparaîtront ici.</span></div>}
-        {feed.map(post => <article className={"instagram-post " + (highlightPost === post.id ? "is-highlighted" : "")} key={post.id}>
+        {feed.map(post => <article id={"instagram-post-" + post.id} className={"instagram-post " + (highlightPost === post.id ? "is-highlighted" : "")} key={post.id}>
           <button type="button" className="instagram-post-author" onClick={() => void openProfile(post.character_id)}>
             {post.avatar_url ? <img src={post.avatar_url} alt="" /> : <span><UserRound size={18} /></span>}
             <span><strong>{post.first_name} {post.last_name}</strong><small>{houseName(post.house)}</small></span>
