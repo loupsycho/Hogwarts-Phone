@@ -64,6 +64,7 @@ export default function GazetteApp({current,uploadMedia}:Props){
     <div className="gazette-public-toolbar"><span>DERNIÈRES PUBLICATIONS</span><button type="button" onClick={()=>setThreadOpen(v=>!v)}><MessageCircle size={15}/> Écrire à la Gazette {messages.length>0&&<i>{messages.length}</i>}</button></div>
     {notice&&<p className="gazette-notice">{notice}</p>}
     {articles.map((article,index)=><article className={"gazette-article "+(index===0?"lead":"")} key={article.id}>
+      <div className="gazette-byline">{avatarUrl?<img src={avatarUrl} alt=""/>:<span><Newspaper size={13}/></span>}<strong>La Gazette du Sorcier</strong></div>
       <div className="gazette-article-kicker"><span>{article.category}</span><time>{dateLabel(article.published_at)}</time></div>
       <h3>{article.title}</h3>
       {article.summary&&<p className="gazette-summary">{article.summary}</p>}
