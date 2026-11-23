@@ -94,3 +94,13 @@
 .instagram-mention-results img{width:26px;height:26px;border-radius:50%;object-fit:cover}
 .instagram-bottom-nav button{position:relative}
 .instagram-nav-badge{position:absolute;top:0;right:1px;min-width:16px;height:16px;padding:0 4px;border-radius:12px;background:var(--burgundy);color:#fff;font-size:9px;line-height:16px;text-align:center}
+
+
+.instagram-delete-post,.instagram-profile-delete{display:inline-flex;align-items:center;gap:6px;color:#d88b82!important;font-size:12px!important;padding:5px 8px!important;border:1px solid rgba(216,139,130,.35)!important;border-radius:8px!important}
+.instagram-confirm-overlay{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:22px;background:rgba(0,0,0,.72);backdrop-filter:blur(5px)}
+.instagram-confirm-dialog{width:min(100%,360px);padding:22px;border:1px solid rgba(197,165,107,.35);border-radius:16px;background:#17191f;color:#eee8dc;box-shadow:0 18px 60px rgba(0,0,0,.5)}
+.instagram-confirm-dialog h3{margin:0 0 10px;font-size:18px;color:#e8d5ad}
+.instagram-confirm-dialog p{margin:0;color:#bcb5a8;font-size:13px;line-height:1.5}
+.instagram-confirm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+.instagram-confirm-actions button{padding:9px 14px;border:1px solid rgba(197,165,107,.3);border-radius:9px;background:#252832;color:#eee8dc}
+.instagram-confirm-actions button.is-danger{background:#8e3935;border-color:#a94b45;color:white;font-weight:600}
