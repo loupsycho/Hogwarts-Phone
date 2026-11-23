@@ -76,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return send(res, 200, { requests: r.rows });
       }
       if (action === "conversations") {
-        const r = await databasePool.query("SELECT c.id,c.conversation_type,c.title,c.updated_at,CASE WHEN c.avatar_media_id IS NOT NULL THEN '/api/media?id='||c.avatar_media_id::text ELSE NULL END AS avatar_url, (SELECT string_agg(ch.first_name || ' ' || ch.last_name, ', ') FROM conversation_members cm JOIN characters ch ON ch.id=cm.character_id WHERE cm.conversation_id=c.id AND ch.id<>$1) AS participants, (SELECT ch.avatar_url FROM conversation_members cm JOIN characters ch ON ch.id=cm.character_id WHERE cm.conversation_id=c.id AND ch.id<>$1 ORDER BY ch.first_name LIMIT 1) AS participant_avatar_url, (SELECT COALESCE(NULLIF(m.body,''), CASE WHEN m.media_id IS NOT NULL THEN 'Photo' ELSE NULL END) FROM messages m WHERE m.conversation_id=c.id ORDER BY m.sent_at DESC LIMIT 1) AS last_message FROM conversations c JOIN conversation_members mine ON mine.conversation_id=c.id WHERE mine.character_id=$1 ORDER BY c.updated_at DESC", [activeCharacter]);
+        const r = await databasePool.query("SELECT c.id,c.conversation_type,c.title,c.updated_at,CASE WHEN c.avatar_media_id IS NOT NULL THEN '/api/media?id='||c.avatar_media_id::text ELSE NULL END AS avatar_url, (SELECT string_agg(ch.first_name || ' ' || ch.last_name, ', ') FROM conversation_members cm JOIN characters ch ON ch.id=cm.character_id WHERE cm.conversation_id=c.id AND ch.id<>$1) AS participants, (SELECT ch.avatar_url FROM conversation_members cm JOIN characters ch ON ch.id=cm.character_id WHERE cm.conversation_id=c.id AND ch.id<>$1 ORDER BY ch.first_name LIMIT 1) AS participant_avatar_url, (SELECT COALESCE(NULLIF(m.body,''), CASE WHEN m.media_id IS NOT NULL THEN 'Photo' ELSE NULL END) FROM messages m WHERE m.conversation_id=c.id ORDER BY m.sent_at DESC LIMIT 1) AS last_message FROM conversations c JOIN conversation_members mine ON mine.conversation_id=c.id WHERE mine.character_id=$1 AND NOT EXISTS(SELECT 1 FROM link_discussions ld WHERE ld.conversation_id=c.id) ORDER BY c.updated_at DESC", [activeCharacter]);
         return send(res, 200, { conversations: r.rows });
       }
       if (action === "messages") {
@@ -129,12 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return send(res, 201, { ok: true });
       }
       if (action === "link-request") {
-        if (!activeCharacter || !body.toCharacterId || !body.relationshipType || body.toCharacterId === activeCharacter) return bad(res, "Demande invalide.");
-        const target = await databasePool.query("SELECT 1 FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=$1 AND u.account_status='approved'", [body.toCharacterId]);
-        if (!target.rowCount) return bad(res, "Ce personnage n'est pas disponible.");
-        const r = await databasePool.query("INSERT INTO link_requests(from_character_id,to_character_id,relationship_type,message) VALUES($1,$2,$3,$4) RETURNING id", [activeCharacter, body.toCharacterId, String(body.relationshipType), body.message || null]);
-        await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'link_request','Nouvelle demande de lien','Un personnage vous propose un lien.','link_request',$2)", [body.toCharacterId,r.rows[0].id]);
-        return send(res, 201, { id: r.rows[0].id });
+        return send(res, 410, { error: "Les propositions doivent passer par l'application Demandes de liens." });
       }
       if (action === "link-response") {
         if (!activeCharacter || !body.requestId || !["accepted","declined"].includes(body.status)) return bad(res, "Réponse invalide.");
@@ -165,7 +160,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const r = await databasePool.query("INSERT INTO messages(conversation_id,sender_character_id,body,media_id) VALUES($1,$2,$3,$4) RETURNING id", [body.conversationId, activeCharacter, String(body.body ?? "").trim(), body.mediaId || null]);
         await databasePool.query("UPDATE conversations SET updated_at=now() WHERE id=$1", [body.conversationId]);
         const recipients = await databasePool.query("SELECT character_id FROM conversation_members WHERE conversation_id=$1 AND character_id<>$2", [body.conversationId,activeCharacter]);
-        for (const recipient of recipients.rows) await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'message','Nouveau hibou',$2,'conversation',$3)", [recipient.character_id,String(body.body??"").trim()?"Vous avez reçu un nouveau message.":"Vous avez reçu une pièce jointe.",body.conversationId]);
+        const linkDiscussion = await databasePool.query("SELECT id FROM link_discussions WHERE conversation_id=$1", [body.conversationId]);
+        for (const recipient of recipients.rows) {
+          if (linkDiscussion.rowCount) {
+            await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'link_discussion_message','Nouveau message dans une discussion de lien',$2,'link_discussion',$3)", [recipient.character_id,String(body.body??"").trim()?"Tu as reçu un nouveau message dans une discussion de lien.":"Tu as reçu une pièce jointe dans une discussion de lien.",linkDiscussion.rows[0].id]);
+          } else {
+            await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'message','Nouveau hibou',$2,'conversation',$3)", [recipient.character_id,String(body.body??"").trim()?"Vous avez reçu un nouveau message.":"Vous avez reçu une pièce jointe.",body.conversationId]);
+          }
+        }
         return send(res, 201, { id: r.rows[0].id });
       }
       if (action === "agenda-invite") {

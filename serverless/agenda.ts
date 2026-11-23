@@ -49,10 +49,18 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
    if(!result.rowCount)return send(res,409,{error:"La réponse n'est plus modifiable pour cet événement."});return send(res,200,{ok:true});
   }
   if(req.method==="POST"&&action==="cancel"){
-   const eventId=String(body.eventId??"");const result=await databasePool.query("UPDATE agenda_events SET cancelled_at=now(),updated_at=now() WHERE id=$1 AND created_by_character_id=$2 AND cancelled_at IS NULL RETURNING id,title",[eventId,characterId]);
-   if(!result.rowCount)return send(res,403,{error:"Seul l'auteur peut annuler cet événement."});
-   await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) SELECT p.character_id,'agenda_event_cancelled','Événement annulé',$2,'agenda_event',$1 FROM agenda_event_participants p WHERE p.event_id=$1 AND p.character_id<>$3",[eventId,"L'événement « "+result.rows[0].title+" » a été annulé.",characterId]);
-   return send(res,200,{ok:true});
+   const eventId=String(body.eventId??"");
+   const event=await databasePool.query("SELECT id FROM agenda_events WHERE id=$1 AND (created_by_character_id=$2 OR (created_by_character_id IS NULL AND created_by_user_id=$3))",[eventId,characterId,user?.id||null]);
+   if(!event.rowCount)return send(res,403,{error:"Seul le personnage qui a publié cet événement peut le supprimer."});
+   const client=await databasePool.connect();
+   try{
+    await client.query("BEGIN");
+    await client.query("DELETE FROM notifications WHERE target_type='agenda_event' AND target_id=$1",[eventId]);
+    await client.query("DELETE FROM agenda_event_participants WHERE event_id=$1",[eventId]);
+    await client.query("DELETE FROM agenda_events WHERE id=$1",[eventId]);
+    await client.query("COMMIT");
+    return send(res,200,{ok:true});
+   }catch(error){await client.query("ROLLBACK");throw error;}finally{client.release();}
   }
   return bad(res,"Action Agenda inconnue.");
  }catch(error){console.error("Hogwarts Phone Agenda API:",error);return send(res,500,{error:"Une erreur est survenue. Réessaie."});}

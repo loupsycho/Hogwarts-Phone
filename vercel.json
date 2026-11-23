@@ -14,6 +14,10 @@
       "destination": "/api/router?route=agenda"
     },
     {
+      "source": "/api/links",
+      "destination": "/api/router?route=links"
+    },
+    {
       "source": "/api/data",
       "destination": "/api/router?route=data"
     },
