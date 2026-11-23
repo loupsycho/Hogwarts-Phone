@@ -3,6 +3,7 @@ name: Build check
 on:
   push:
     branches:
+      - main
       - setup/base-application
       - rebuild/foundation
   pull_request:
