@@ -33,7 +33,7 @@ export default function LinksApp({current}:Props){
  const [desired,setDesired]=useState<LinkItem[]>([]);
  const [customDrafts,setCustomDrafts]=useState<string[]>([]);
  const [selectedProfile,setSelectedProfile]=useState<Profile|null>(null);
- const [proposal,setProposal]=useState<{target:Profile;type:string;category:string;message:string}|null>(null);
+ const [proposal,setProposal]=useState<{target:Profile;type:string;category:string;message:string;customType:string}|null>(null);
  const [editing,setEditing]=useState<Request|null>(null);
  const [activeCategory,setActiveCategory]=useState("all");
  const [showHistory,setShowHistory]=useState(false);
@@ -81,7 +81,7 @@ export default function LinksApp({current}:Props){
   try{
    const list=[...desired,...customDrafts.map(type=>({type:type.trim(),category:"other",detail:""})).filter(x=>x.type)];
    const d=await call("profile-save","POST",{description,desiredLinks:list});
-   await refresh();setNotice("Ta demande de liens est publiée et visible par les autres personnages.");
+   setCustomDrafts([]);await refresh();setNotice("Ta demande de liens est publiée et visible par les autres personnages.");
   }catch(e){setNotice(e instanceof Error?e.message:"Publication impossible.");}
   finally{setBusy(false);}
  }
@@ -97,11 +97,11 @@ export default function LinksApp({current}:Props){
  }
  function openProposal(target:Profile){
   const first=target.desired_links?.[0]||{type:"Amitié simple",category:"friendship"};
-  setProposal({target,type:first.type,category:first.category||"other",message:""});
+  setProposal({target,type:first.type,category:first.category||"other",message:"",customType:""});
  }
  async function sendProposal(e:React.FormEvent){
   e.preventDefault();if(!proposal)return;setBusy(true);setNotice("");
-  try{await call("propose","POST",{toCharacterId:proposal.target.character_id,relationshipType:proposal.type,relationshipCategory:proposal.category,message:proposal.message});setProposal(null);setSelectedProfile(null);await refresh();setNotice("Proposition envoyée. Une discussion de lien a également été créée.");}
+  try{await call("propose","POST",{toCharacterId:proposal.target.character_id,relationshipType:proposal.type==="__custom"?proposal.customType:proposal.type,relationshipCategory:proposal.category,message:proposal.message});setProposal(null);setSelectedProfile(null);await refresh();setNotice("Proposition envoyée. Une discussion de lien a également été créée.");}
   catch(e){setNotice(e instanceof Error?e.message:"Proposition impossible.");}
   finally{setBusy(false);}
  }
@@ -206,7 +206,7 @@ export default function LinksApp({current}:Props){
 
   {selectedProfile&&<div className="links-modal-backdrop" onClick={()=>setSelectedProfile(null)}><article className="links-profile-modal" onClick={e=>e.stopPropagation()}><div className="links-modal-head"><span className="eyebrow">PROFIL DE RECHERCHE</span><button onClick={()=>setSelectedProfile(null)}><X/></button></div><div className="links-modal-hero">{selectedProfile.avatar_url?<img src={selectedProfile.avatar_url} alt=""/>:<UserRound/>}<h3>{nameOf(selectedProfile)}</h3><small>{selectedProfile.character_type==="student"?"Élève":selectedProfile.role_title||"Employé"}</small><p>Orientation : {selectedProfile.sexual_orientation||"Non renseignée"}</p></div>{selectedProfile.description&&<p className="links-modal-description">{selectedProfile.description}</p>}<h4>Ce que je recherche</h4><div className="links-modal-tags">{selectedProfile.desired_links?.map(x=><span key={x.type}>{x.type}{x.detail?" · "+x.detail:""}</span>)}</div><div className="links-actions"><button onClick={()=>openProposal(selectedProfile)}>Proposer un lien</button><button className="secondary" onClick={()=>void startDiscussion(selectedProfile)}><MessageCircle size={15}/> Envoyer un message pour discuter d'un lien</button></div></article></div>}
 
-  {proposal&&<div className="links-modal-backdrop" onClick={()=>setProposal(null)}><form className="links-form-modal" onSubmit={sendProposal} onClick={e=>e.stopPropagation()}><div className="links-modal-head"><h4>Proposer un lien à {nameOf(proposal.target)}</h4><button type="button" onClick={()=>setProposal(null)}><X/></button></div><label className="links-field">Type de lien<select value={proposal.type} onChange={e=>{const found=proposal.target.desired_links.find(x=>x.type===e.target.value);setProposal(old=>old?{...old,type:e.target.value,category:found?.category||"other"}:old);}}>{proposal.target.desired_links.map(x=><option key={x.type} value={x.type}>{x.type}</option>)}<option value="__custom">Autre proposition…</option></select></label>{proposal.type==="__custom"&&<label className="links-field">Précise le lien<input required value={proposal.message} onChange={e=>setProposal(old=>old?{...old,message:e.target.value}:old)} placeholder="Ex. partenaire de duel"/></label>}<label className="links-field">Catégorie<select value={proposal.category} onChange={e=>setProposal(old=>old?{...old,category:e.target.value}:old)}>{categoryOptions.map(x=><option key={x} value={x}>{categoryLabel[x]}</option>)}</select></label><label className="links-field">Message facultatif<textarea rows={3} value={proposal.message} onChange={e=>setProposal(old=>old?{...old,message:e.target.value}:old)} placeholder="Ajoute un petit message…"/></label><button className="links-primary" disabled={busy}>{busy?"Envoi…":"Envoyer la proposition"}</button></form></div>}
+  {proposal&&<div className="links-modal-backdrop" onClick={()=>setProposal(null)}><form className="links-form-modal" onSubmit={sendProposal} onClick={e=>e.stopPropagation()}><div className="links-modal-head"><h4>Proposer un lien à {nameOf(proposal.target)}</h4><button type="button" onClick={()=>setProposal(null)}><X/></button></div><label className="links-field">Type de lien<select value={proposal.type} onChange={e=>{const found=proposal.target.desired_links.find(x=>x.type===e.target.value);setProposal(old=>old?{...old,type:e.target.value,category:found?.category||"other"}:old);}}>{proposal.target.desired_links.map(x=><option key={x.type} value={x.type}>{x.type}</option>)}<option value="__custom">Autre proposition…</option></select></label>{proposal.type==="__custom"&&<label className="links-field">Précise le lien<input required value={proposal.customType} onChange={e=>setProposal(old=>old?{...old,customType:e.target.value}:old)} placeholder="Ex. partenaire de duel"/></label>}<label className="links-field">Catégorie<select value={proposal.category} onChange={e=>setProposal(old=>old?{...old,category:e.target.value}:old)}>{categoryOptions.map(x=><option key={x} value={x}>{categoryLabel[x]}</option>)}</select></label><label className="links-field">Message facultatif<textarea rows={3} value={proposal.message} onChange={e=>setProposal(old=>old?{...old,message:e.target.value}:old)} placeholder="Ajoute un petit message…"/></label><button className="links-primary" disabled={busy}>{busy?"Envoi…":"Envoyer la proposition"}</button></form></div>}
 
   {editing&&<div className="links-modal-backdrop" onClick={()=>setEditing(null)}><form className="links-form-modal" onSubmit={editRequest} onClick={e=>e.stopPropagation()}><div className="links-modal-head"><h4>Modifier la proposition</h4><button type="button" onClick={()=>setEditing(null)}><X/></button></div><label className="links-field">Type de lien<input name="relationshipType" defaultValue={editing.relationship_type} required/></label><label className="links-field">Catégorie<select name="relationshipCategory" defaultValue={editing.relationship_category}>{categoryOptions.map(x=><option key={x} value={x}>{categoryLabel[x]}</option>)}</select></label><label className="links-field">Message<textarea name="message" defaultValue={editing.message||""}/></label><button className="links-primary" disabled={busy}>Enregistrer</button></form></div>}
  </section>;
