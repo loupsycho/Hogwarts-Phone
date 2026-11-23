@@ -129,7 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (action === "post") {
-        if (!body.caption && !body.mediaId) return send(res, 400, { error: "Ajoute une légende ou une photo/vidéo." });
+        if (!body.mediaId) return send(res, 400, { error: "Ajoute une photo ou une vidéo pour publier." });
         if (body.mediaId) {
           const media = await databasePool.query(
             "SELECT id FROM media_assets WHERE id=$1 AND character_id=$2 AND media_kind='instagram'",
