@@ -8,6 +8,7 @@ on:
       - rebuild/foundation
   pull_request:
     branches:
+      - main
       - setup/base-application
 
 jobs:
