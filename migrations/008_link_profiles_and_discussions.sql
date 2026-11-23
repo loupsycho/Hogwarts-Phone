@@ -10,11 +10,11 @@ ALTER TABLE link_requests
 
 UPDATE link_requests
 SET relationship_category = CASE
+  WHEN lower(relationship_type) LIKE '%ex %' OR lower(relationship_type) LIKE '%ex-%' OR lower(relationship_type) LIKE '%ancien%' THEN 'past'
   WHEN lower(relationship_type) LIKE '%couple%' OR lower(relationship_type) LIKE '%crush%' OR lower(relationship_type) LIKE '%plan%' OR lower(relationship_type) LIKE '%amour%' THEN 'romance'
   WHEN lower(relationship_type) LIKE '%ami%' OR lower(relationship_type) LIKE '%friend%' THEN 'friendship'
   WHEN lower(relationship_type) LIKE '%rival%' OR lower(relationship_type) LIKE '%ennemi%' THEN 'rivalry'
   WHEN lower(relationship_type) LIKE '%frère%' OR lower(relationship_type) LIKE '%soeur%' OR lower(relationship_type) LIKE '%sœur%' OR lower(relationship_type) LIKE '%père%' OR lower(relationship_type) LIKE '%mère%' OR lower(relationship_type) LIKE '%cousin%' OR lower(relationship_type) LIKE '%oncle%' OR lower(relationship_type) LIKE '%tante%' OR lower(relationship_type) LIKE '%famille%' THEN 'family'
-  WHEN lower(relationship_type) LIKE '%ex %' OR lower(relationship_type) LIKE '%ancienne%' THEN 'past'
   ELSE relationship_category
 END;
 
