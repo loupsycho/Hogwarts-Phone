@@ -88,7 +88,7 @@ function App(){
  useEffect(()=>{if(screen!=="phone"||!current)return;let cancelled=false;const refresh=async()=>{try{const d=await api("notifications","GET",{}, {characterId:current.id});if(!cancelled)setNotificationsByCharacter(prev=>({...prev,[current.id]:(d.notifications||[]).filter((n:any)=>!n.read_at)}));}catch{}};void refresh();const timer=window.setInterval(()=>void refresh(),15000);return()=>{cancelled=true;window.clearInterval(timer);};},[screen,current?.id]);
  async function loadApp(key:AppKey,character=current){
   setActive(key);setNotice("");if(!character||key==="home")return;
-  const targetTypes:Partial<Record<AppKey,string[]>>={messages:["conversation"],links:["link_request"],agenda:["agenda_event"],instagram:["instagram_post","instagram_profile"]};
+  const targetTypes:Partial<Record<AppKey,string[]>>={messages:["conversation"],links:["link_request"],agenda:["agenda_event"]};
   const matching=(notificationsByCharacter[character.id]||[]).filter((n:any)=>(targetTypes[key]||[]).includes(n.target_type));
   if(matching.length){await Promise.all(matching.map((n:any)=>api("notification-read","POST",{characterId:character.id,notificationId:n.id})));setNotificationsByCharacter(prev=>({...prev,[character.id]:(prev[character.id]||[]).filter((n:any)=>!matching.some((m:any)=>m.id===n.id))}));}
   try{
