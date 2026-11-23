@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Camera, Heart, MessageCircle, Newspaper, Send, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { Camera, MessageCircle, Newspaper, Send, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import "./gazette.css";
 
 type Character = { id:string; first_name?:string; last_name?:string; avatar_url?:string|null };
@@ -36,7 +36,7 @@ export default function GazetteApp({current,uploadMedia}:Props){
     const [feed,thread]=await Promise.all([call("feed"),call("thread")]);
     setArticles(feed.articles||[]);setAvatarUrl(feed.avatarUrl||null);setMessages(thread.messages||[]);
   }
-  useEffect(()=>{void refresh().catch(e=>setNotice(e.message));},[current.id]);
+  useEffect(()=>{void refresh().catch(e=>setNotice(e.message));const timer=window.setInterval(()=>void refresh().catch(()=>{}),15000);return()=>window.clearInterval(timer);},[current.id]);
 
   async function react(article:Article,reaction:"like"|"dislike"){
     const next=article.my_reaction===reaction?"none":reaction;
