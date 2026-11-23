@@ -10,7 +10,7 @@ type Character = { id:string; sexual_orientation?:string|null; first_name?:strin
 type AppKey = "home"|"messages"|"instagram"|"gazette"|"contacts"|"links"|"agenda"|"profile"|"groups";
 const apps = [
  {id:"messages" as const,label:"Messages",icon:Mail,desc:"Hiboux et conversations"},
- {id:"instagram" as const,label:"Instagram",icon:Instagram,desc:"Le fil de vos personnages"},
+ {id:"instagram" as const,label:"Wizardgram",icon:Instagram,desc:"Le réseau des sorciers"},
  {id:"gazette" as const,label:"Gazette du Sorcier",icon:Newspaper,desc:"Actualités et publications"},
  {id:"contacts" as const,label:"Contacts",icon:Contact,desc:"Élèves et personnel"},
  {id:"links" as const,label:"Demandes de liens",icon:HeartHandshake,desc:"Relations entre personnages"},
