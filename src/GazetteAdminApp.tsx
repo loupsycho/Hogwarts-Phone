@@ -47,8 +47,9 @@ export default function GazetteAdminApp(){
   async function refresh(){
     const d=await call("admin-dashboard");
     setDashboard({articles:d.articles||[],threads:d.threads||[],characters:d.characters||[],avatarUrl:d.avatarUrl||null,unreadMessages:Number(d.unreadMessages)||0});
+    return d as Dashboard;
   }
-  useEffect(()=>{void refresh().catch(e=>setNotice(e.message));const timer=window.setInterval(()=>void refresh().catch(()=>{}),15000);return()=>window.clearInterval(timer);},[]);
+  useEffect(()=>{const update=async()=>{try{await refresh();if(selectedThread){const t=await call("admin-thread","GET",{}, {threadId:selectedThread});setThreadMessages(t.messages||[]);}}catch{}};void update();const timer=window.setInterval(()=>void update(),15000);return()=>window.clearInterval(timer);},[selectedThread]);
 
   async function openThread(thread:Thread){
     setSelectedThread(thread.thread_id);setThreadName(thread.first_name+" "+thread.last_name);
@@ -62,7 +63,7 @@ export default function GazetteAdminApp(){
   }
   async function sendDirect(e:FormEvent){
     e.preventDefault();if(!targetCharacter||!directMessage.trim())return;
-    setBusy(true);try{const d=await call("admin-send","POST",{targetCharacterId:targetCharacter,body:directMessage.trim()});setDirectMessage("");await refresh();const thread=dashboard.threads.find(t=>t.character_id===targetCharacter);if(thread){await openThread(thread);}else{setNotice("Message envoyé. La conversation apparaîtra dans la boîte de réception.");}setNotice("Message privé envoyé sous le nom de la Gazette.");}
+    setBusy(true);try{await call("admin-send","POST",{targetCharacterId:targetCharacter,body:directMessage.trim()});setDirectMessage("");const updated=await refresh();const thread=updated.threads.find((t:Thread)=>t.character_id===targetCharacter);if(thread){await openThread(thread);}setNotice("Message privé envoyé sous le nom de la Gazette.");}
     catch(e){setNotice(e instanceof Error?e.message:"Envoi impossible.");}finally{setBusy(false);}
   }
   async function publish(e:FormEvent){
