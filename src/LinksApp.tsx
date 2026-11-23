@@ -10,7 +10,7 @@ type Request = { id:string; from_character_id:string; to_character_id:string; re
 type Relationship = { id:string; relationship_type:string; relationship_category:string; ended_at:string|null; other_character_id:string; other_first_name:string; other_last_name:string; other_avatar_url:string|null };
 type Discussion = { discussion_id:string; conversation_id:string; request_id:string|null; other_character_id:string; other_first_name:string; other_last_name:string; other_avatar_url:string|null; relationship_type:string|null; last_message:string|null; last_message_at:string|null; unread_count:number };
 type Dashboard = { profile:Profile|null; profiles:Profile[]; requests:Request[]; relationships:Relationship[]; discussions:Discussion[] };
-type Props = { current:Person };
+type Props = { current:Person; unreadRequests?:number; unreadDiscussions?:number; onReadTab?:(targetType:"link_request"|"link_discussion")=>Promise<void>|void };
 
 const presets:LinkItem[] = [
  {type:"Couple",category:"romance"},{type:"Plan cul",category:"romance"},{type:"Plan d'un soir",category:"romance"},{type:"Future couple",category:"romance"},{type:"Crush",category:"romance"},{type:"Ambiguë",category:"romance"},
@@ -24,7 +24,7 @@ const nameOf=(p:{first_name?:string;last_name?:string})=>[p.first_name,p.last_na
 const dateOf=(v:string)=>new Date(v).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
 const tokenHeaders=():Record<string,string>=>{const token=localStorage.getItem("hogwarts_session");return token?{Authorization:"Bearer "+token}:{};};
 
-export default function LinksApp({current}:Props){
+export default function LinksApp({current,unreadRequests=0,unreadDiscussions=0,onReadTab}:Props){
  const [dashboard,setDashboard]=useState<Dashboard>({profile:null,profiles:[],requests:[],relationships:[],discussions:[]});
  const [people,setPeople]=useState<Person[]>([]);
  const [tab,setTab]=useState("mine");
@@ -158,7 +158,7 @@ export default function LinksApp({current}:Props){
 
  return <section className="links-app">
   <div className="links-tabs" role="tablist" aria-label="Demandes de liens">
-   {[["mine","Ma demande de liens"],["browse","Liens recherchés"],["requests","Demandes en cours"],["relationships","Mes liens"],["discussions","Discussions de liens"]].map(([id,label])=><button type="button" key={id} className={tab===id?"active":""} onClick={()=>{setTab(id);setNotice("");}}>{label}</button>)}
+   {[["mine","Ma demande de liens"],["browse","Liens recherchés"],["requests","Demandes en cours"],["relationships","Mes liens"],["discussions","Discussions de liens"]].map(([id,label])=><button type="button" key={id} className={tab===id?"active":""} onClick={()=>{setTab(id);setNotice("");if(id==="requests")void onReadTab?.("link_request");if(id==="discussions")void onReadTab?.("link_discussion");}}>{label}{id==="requests"&&unreadRequests>0&&<i className="links-tab-badge">{unreadRequests>9?"9+":unreadRequests}</i>}{id==="discussions"&&unreadDiscussions>0&&<i className="links-tab-badge">{unreadDiscussions>9?"9+":unreadDiscussions}</i>}</button>)}
   </div>
   {notice&&<p className="links-notice">{notice}</p>}
 
@@ -183,8 +183,8 @@ export default function LinksApp({current}:Props){
   {tab==="browse"&&<div className="links-section">
    <div className="links-subtabs"><button className={kindTab==="student"?"active":""} onClick={()=>{setKindTab("student");setSearch("");}}>Élèves</button><button className={kindTab==="staff"?"active":""} onClick={()=>{setKindTab("staff");setSearch("");}}>Employés</button></div>
    <label className="links-search"><Search size={16}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={"Rechercher un "+(kindTab==="student"?"élève":"employé")+" par prénom ou nom…"}/></label>
-   <p className="links-count">{visibleProfiles.length} profil{visibleProfiles.length>1?"s":""}</p>
-   <div className="links-profile-grid">{visibleProfiles.map(p=><button type="button" key={p.character_id} className="links-profile-card" onClick={()=>setSelectedProfile(p)}>{p.avatar_url?<img src={p.avatar_url} alt=""/>:<span className="links-avatar-fallback"><UserRound/></span>}<strong>{nameOf(p)}</strong><small>{p.character_type==="student"?"Élève":p.role_title||"Employé"}</small><span className="links-tags">{p.desired_links?.slice(0,3).map(x=><i key={x.type}>{x.category==="other"?"Autre : "+x.type:x.type}</i>)}</span></button>)}</div>
+   <p className="links-browse-hint">Clique sur le personnage qui t’intéresse pour en savoir +.</p><p className="links-count">{visibleProfiles.length} profil{visibleProfiles.length>1?"s":""}</p>
+   <div className="links-profile-grid">{visibleProfiles.map(p=><button type="button" key={p.character_id} className="links-profile-card" onClick={()=>setSelectedProfile(p)}>{p.avatar_url?<img src={p.avatar_url} alt=""/>:<span className="links-avatar-fallback"><UserRound/></span>}<strong>{nameOf(p)}</strong><small>{p.character_type==="student"?"Élève":p.role_title||"Employé"}</small></button>)}</div>
    {!visibleProfiles.length&&<p className="links-empty">Aucun profil publié dans cette catégorie.</p>}
   </div>}
 

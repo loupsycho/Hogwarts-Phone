@@ -67,6 +67,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         );
         canRead = Boolean(visible.rowCount);
       }
+      if (!canRead && media.rows[0].media_kind === "gazette") {
+        const visible = await databasePool.query(
+          "SELECT 1 FROM gazette_articles WHERE image_media_id=$1 UNION ALL SELECT 1 FROM gazette_settings WHERE avatar_media_id=$1 LIMIT 1",
+          [id],
+        );
+        canRead = Boolean(visible.rowCount);
+      }
       if (!canRead && media.rows[0].media_kind === "gallery") {
         const visible = await databasePool.query(
           "SELECT 1 FROM conversations cv JOIN conversation_members cm ON cm.conversation_id=cv.id JOIN characters c ON c.id=cm.character_id WHERE cv.avatar_media_id=$1 AND c.owner_user_id=$2 LIMIT 1",
@@ -91,22 +98,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const mimeType = String(body.mimeType ?? "");
     const fileName = String(body.fileName ?? "media");
     const base64 = String(body.data ?? "");
-    if (!characterId || !["avatar", "instagram", "message", "gallery"].includes(kind)) {
+    if ((kind !== "gazette" && !characterId) || !["avatar", "instagram", "message", "gallery", "gazette"].includes(kind)) {
       return reply(res, 400, { error: "Informations du média incomplètes." });
     }
     if (!allowedTypes.has(mimeType)) return reply(res, 400, { error: "Format non pris en charge. Utilise une image ou une vidéo MP4/WebM." });
-    const owned = await databasePool.query(
-      "SELECT id FROM characters WHERE id=$1 AND owner_user_id=$2",
-      [characterId, user.id],
-    );
-    if (!owned.rowCount && !Boolean(admin.rows[0]?.yes)) return reply(res, 403, { error: "Personnage inaccessible." });
+    if (kind === "gazette" && !Boolean(admin.rows[0]?.yes)) return reply(res, 403, { error: "Réservé à l'administration." });
+    if (kind !== "gazette") {
+      const owned = await databasePool.query(
+        "SELECT id FROM characters WHERE id=$1 AND owner_user_id=$2",
+        [characterId, user.id],
+      );
+      if (!owned.rowCount && !Boolean(admin.rows[0]?.yes)) return reply(res, 403, { error: "Personnage inaccessible." });
+    }
     if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64) || !base64) return reply(res, 400, { error: "Fichier invalide." });
     const bytes = Buffer.from(base64, "base64");
     if (!bytes.length || bytes.length > maxBytes) return reply(res, 413, { error: "Le fichier doit faire 10 Mo maximum." });
 
     const inserted = await databasePool.query(
       "INSERT INTO media_assets(owner_user_id,character_id,media_kind,mime_type,file_name,byte_size,content) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id",
-      [user.id, characterId, kind, mimeType, fileName.slice(0, 180), bytes.length, bytes],
+      [user.id, kind === "gazette" ? null : characterId, kind, mimeType, fileName.slice(0, 180), bytes.length, bytes],
     );
     const id = inserted.rows[0].id;
     const url = "/api/media?id=" + encodeURIComponent(id);

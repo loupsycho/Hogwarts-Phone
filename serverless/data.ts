@@ -92,13 +92,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       if (action === "admin") {
         if (!ctx.isAdmin) return send(res, 403, { error: "Réservé à l'administration." });
-        const [players, chars, articles, events] = await Promise.all([
+        const [players, chars, articles, events, pendingPlayers, gazetteUnread] = await Promise.all([
           databasePool.query("SELECT id,discord_user_id,discord_username,discord_avatar_url,account_status,created_at FROM app_users ORDER BY created_at DESC"),
           databasePool.query("SELECT c.*,u.discord_username FROM characters c JOIN app_users u ON u.id=c.owner_user_id ORDER BY c.created_at DESC"),
           databasePool.query("SELECT id,title,category,publication_status,created_at FROM gazette_articles ORDER BY created_at DESC"),
           databasePool.query("SELECT id,title,starts_at,visibility FROM agenda_events ORDER BY starts_at DESC LIMIT 30"),
+          databasePool.query("SELECT count(*)::int AS count FROM app_users WHERE account_status='pending'"),
+          databasePool.query("SELECT count(*)::int AS count FROM gazette_messages WHERE sender_type='character' AND read_at IS NULL"),
         ]);
-        return send(res, 200, { players: players.rows, characters: chars.rows, articles: articles.rows, events: events.rows });
+        return send(res, 200, { players: players.rows, characters: chars.rows, articles: articles.rows, events: events.rows, pendingPlayerCount: Number(pendingPlayers.rows[0]?.count||0), gazetteUnreadCount: Number(gazetteUnread.rows[0]?.count||0) });
       }
       return bad(res, "Action GET inconnue.");
     }
