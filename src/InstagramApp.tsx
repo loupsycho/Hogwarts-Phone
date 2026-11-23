@@ -195,8 +195,8 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
 
   async function publish(event: FormEvent) {
     event.preventDefault();
-    if (!caption.trim() && !media?.id) {
-      setNotice("Ajoute une légende ou une photo/vidéo.");
+    if (!media?.id) {
+      setNotice("Ajoute une photo ou une vidéo pour publier.");
       return;
     }
     setBusy(true);
