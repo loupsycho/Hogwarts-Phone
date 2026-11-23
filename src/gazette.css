@@ -97,3 +97,6 @@
 .gazette-admin-reaction-list summary{cursor:pointer;color:#e4cd9b}
 .gazette-admin-reaction-list p{margin:5px 0;color:#eee2cd}
 @media(max-width:380px){.gazette-title-row h2{font-size:24px}.gazette-article h3{font-size:22px}.gazette-admin-heading{flex-direction:column}.gazette-reactions button{padding:6px 7px;font-size:9px}}
+
+.gazette-byline{display:flex;align-items:center;gap:6px;margin-bottom:8px;color:#665237;font:700 9px 'DM Sans',sans-serif}
+.gazette-byline img,.gazette-byline>span{display:grid;place-items:center;width:24px;height:24px;flex:0 0 24px;object-fit:cover;border:1px solid #9b8967;border-radius:50%;background:#d9ceb3;color:#59472d}
