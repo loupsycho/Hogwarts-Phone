@@ -63,7 +63,7 @@ async function prepareInstagramUpload(file: File): Promise<File> {
       if (attempt >= 2) scale *= 0.82;
     }
     if (!blob || blob.size > limit) throw new Error("Cette image est trop volumineuse pour être envoyée.");
-    return new File([blob], file.name.replace(/\\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
   } finally {
     URL.revokeObjectURL(url);
   }
