@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "SELECT c.id,c.first_name,c.last_name,c.character_type,c.house,c.avatar_url,c.sexual_orientation,c.role_title,c.biography FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=$1 AND u.account_status='approved'",
       [id],
     );
-    const isFamily = (category: string, type: string) => category === "family" && /(frère|soeur|sœur|père|mère|oncle|tante|cousin|cousine|familial|famille|grand[- ]?(père|mère)|neveu|nièce|beau-frère|belle-soeur)/i.test(type.trim());
+    const isFamily = (category: string, type: string) => category === "family" && /(frère|soeur|sœur|père|mère|oncle|tante|cousin|cousine|familial|famille|grand[- ]?(père|mère)|neveu|nièce|beau-frère|belle[- ]?(soeur|sœur))/i.test(type.trim());
 
     if (req.method === "GET" && action === "dashboard") {
       const [profile, profiles, requests, relationships, discussions] = await Promise.all([
