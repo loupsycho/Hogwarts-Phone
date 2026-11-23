@@ -8,7 +8,7 @@ type Thread={thread_id:string;character_id:string;first_name:string;last_name:st
 type Character={id:string;first_name:string;last_name:string;character_type:string;house:string|null;role_title:string|null};
 type Message={id:string;sender_type:"character"|"gazette";body:string;created_at:string;media_url:string|null;first_name?:string;last_name?:string};
 type Dashboard={articles:AdminArticle[];threads:Thread[];characters:Character[];avatarUrl:string|null;unreadMessages:number};
-const headers=()=>{const token=localStorage.getItem("hogwarts_session");return token?{Authorization:"Bearer "+token}:{};};
+const headers=():Record<string,string>=>{const token=localStorage.getItem("hogwarts_session");return token?{Authorization:"Bearer "+token}:{};};
 
 async function uploadGazetteImage(file:File){
   if(!file.type.startsWith("image/"))throw new Error("Choisis une image.");
