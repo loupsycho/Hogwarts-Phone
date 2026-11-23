@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { Camera, Check, MessageCircle, Newspaper, Plus, Send, Trash2, Upload, X } from "lucide-react";
 import "./gazette.css";
 
@@ -54,22 +55,22 @@ export default function GazetteAdminApp(){
     try{const d=await call("admin-thread","GET",{}, {threadId:thread.thread_id});setThreadMessages(d.messages||[]);await refresh();}
     catch(e){setNotice(e instanceof Error?e.message:"Impossible d'ouvrir le message.");}
   }
-  async function sendReply(e:React.FormEvent){
+  async function sendReply(e:FormEvent){
     e.preventDefault();if(!selectedThread||!reply.trim())return;
     setBusy(true);try{await call("admin-reply","POST",{threadId:selectedThread,body:reply.trim()});setReply("");const d=await call("admin-thread","GET",{}, {threadId:selectedThread});setThreadMessages(d.messages||[]);await refresh();setNotice("Réponse envoyée sous le nom de la Gazette.");}
     catch(e){setNotice(e instanceof Error?e.message:"Envoi impossible.");}finally{setBusy(false);}
   }
-  async function sendDirect(e:React.FormEvent){
+  async function sendDirect(e:FormEvent){
     e.preventDefault();if(!targetCharacter||!directMessage.trim())return;
     setBusy(true);try{const d=await call("admin-send","POST",{targetCharacterId:targetCharacter,body:directMessage.trim()});setDirectMessage("");await refresh();const thread=dashboard.threads.find(t=>t.character_id===targetCharacter);if(thread){await openThread(thread);}else{setNotice("Message envoyé. La conversation apparaîtra dans la boîte de réception.");}setNotice("Message privé envoyé sous le nom de la Gazette.");}
     catch(e){setNotice(e instanceof Error?e.message:"Envoi impossible.");}finally{setBusy(false);}
   }
-  async function publish(e:React.FormEvent){
+  async function publish(e:FormEvent){
     e.preventDefault();if(!title.trim()||!articleBody.trim())return;
     setBusy(true);try{let imageMediaId:string|null=null;if(articlePhoto){const media=await uploadGazetteImage(articlePhoto);imageMediaId=media.id;}await call("admin-publish","POST",{title,summary,body:articleBody,category,imageMediaId});setTitle("");setSummary("");setArticleBody("");setCategory("Actualité");setArticlePhoto(null);await refresh();setNotice("Publication mise en ligne et notification envoyée aux personnages.");}
     catch(e){setNotice(e instanceof Error?e.message:"Publication impossible.");}finally{setBusy(false);}
   }
-  async function setAvatar(e:React.FormEvent){
+  async function setAvatar(e:FormEvent){
     e.preventDefault();if(!avatarPhoto)return;
     setBusy(true);try{const media=await uploadGazetteImage(avatarPhoto);await call("admin-avatar","POST",{mediaId:media.id});setAvatarPhoto(null);await refresh();setNotice("Photo de profil de la Gazette mise à jour.");}
     catch(e){setNotice(e instanceof Error?e.message:"Modification impossible.");}finally{setBusy(false);}
