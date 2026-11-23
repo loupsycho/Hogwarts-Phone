@@ -2,22 +2,17 @@
 ALTER TABLE public.gazette_articles
   ADD COLUMN IF NOT EXISTS image_media_id uuid;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'gazette_articles_image_media_fk') THEN
-    ALTER TABLE public.gazette_articles
-      ADD CONSTRAINT gazette_articles_image_media_fk
-      FOREIGN KEY (image_media_id) REFERENCES public.media_assets(id) ON DELETE SET NULL;
-  END IF;
-  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'media_assets_media_kind_check') THEN
-    ALTER TABLE public.media_assets DROP CONSTRAINT media_assets_media_kind_check;
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'media_assets_media_kind_check') THEN
-    ALTER TABLE public.media_assets
-      ADD CONSTRAINT media_assets_media_kind_check
-      CHECK (media_kind IN ('avatar','instagram','message','gallery','gazette'));
-  END IF;
-END $$;
+ALTER TABLE public.gazette_articles
+  DROP CONSTRAINT IF EXISTS gazette_articles_image_media_fk;
+ALTER TABLE public.gazette_articles
+  ADD CONSTRAINT gazette_articles_image_media_fk
+  FOREIGN KEY (image_media_id) REFERENCES public.media_assets(id) ON DELETE SET NULL;
+
+ALTER TABLE public.media_assets
+  DROP CONSTRAINT IF EXISTS media_assets_media_kind_check;
+ALTER TABLE public.media_assets
+  ADD CONSTRAINT media_assets_media_kind_check
+  CHECK (media_kind IN ('avatar','instagram','message','gallery','gazette'));
 
 CREATE TABLE IF NOT EXISTS public.gazette_settings (
   id smallint PRIMARY KEY DEFAULT 1 CHECK (id = 1),
