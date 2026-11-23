@@ -12,7 +12,7 @@ type Props = {
   uploadMedia:(file:File,kind:"avatar"|"instagram"|"message"|"gallery")=>Promise<any>;
 };
 
-const headers=()=>{const token=localStorage.getItem("hogwarts_session");return token?{Authorization:"Bearer "+token}:{};};
+const headers=():Record<string,string>=>{const token=localStorage.getItem("hogwarts_session");return token?{Authorization:"Bearer "+token}:{};};
 const dateLabel=(value:string|null)=>value?new Date(value).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}):"Édition du jour";
 
 export default function GazetteApp({current,uploadMedia}:Props){
