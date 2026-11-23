@@ -5,6 +5,7 @@
   },
   "include": [
     "api/**/*.ts",
-    "src/server/**/*.ts"
+    "src/server/**/*.ts",
+    "serverless/**/*.ts"
   ]
 }
