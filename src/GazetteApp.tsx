@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { Camera, Heart, MessageCircle, Newspaper, Send, ThumbsDown, ThumbsUp, X } from "lucide-react";
 import "./gazette.css";
 
@@ -42,7 +43,7 @@ export default function GazetteApp({current,uploadMedia}:Props){
     try{await call("react","POST",{articleId:article.id,reaction:next});await refresh();}
     catch(e){setNotice(e instanceof Error?e.message:"Réaction impossible.");}
   }
-  async function sendMessage(e:React.FormEvent){
+  async function sendMessage(e:FormEvent){
     e.preventDefault();if(!body.trim()&&!photo)return;
     setBusy(true);setNotice("");
     try{
