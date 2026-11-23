@@ -135,11 +135,8 @@ function App(){
  async function openConversation(id:string){
   setSelectedConversation(id);setMessageSection("chat");
   try{
-   const unread=(notificationsByCharacter[current!.id]||[]).filter((n:any)=>n.notification_type==="message"&&n.target_type==="conversation"&&n.target_id===id);
-   if(unread.length){
-    await Promise.all(unread.map((n:any)=>api("notification-read","POST",{characterId:current!.id,notificationId:n.id})));
-    setNotificationsByCharacter(prev=>({...prev,[current!.id]:(prev[current!.id]||[]).filter((n:any)=>!unread.some((item:any)=>item.id===n.id))}));
-   }
+   await api("conversation-read","POST",{characterId:current!.id,conversationId:id});
+   setNotificationsByCharacter(prev=>({...prev,[current!.id]:(prev[current!.id]||[]).filter((n:any)=>!(n.notification_type==="message"&&n.target_type==="conversation"&&n.target_id===id))}));
    const d=await api("messages","GET",{}, {characterId:current!.id,conversationId:id});setMessages(d.messages||[]);
   }catch(e){setNotice(e instanceof Error?e.message:"Chargement impossible.");}
  }
