@@ -129,12 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return send(res, 201, { ok: true });
       }
       if (action === "link-request") {
-        if (!activeCharacter || !body.toCharacterId || !body.relationshipType || body.toCharacterId === activeCharacter) return bad(res, "Demande invalide.");
-        const target = await databasePool.query("SELECT 1 FROM characters c JOIN app_users u ON u.id=c.owner_user_id WHERE c.id=$1 AND u.account_status='approved'", [body.toCharacterId]);
-        if (!target.rowCount) return bad(res, "Ce personnage n'est pas disponible.");
-        const r = await databasePool.query("INSERT INTO link_requests(from_character_id,to_character_id,relationship_type,message) VALUES($1,$2,$3,$4) RETURNING id", [activeCharacter, body.toCharacterId, String(body.relationshipType), body.message || null]);
-        await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'link_request','Nouvelle demande de lien','Un personnage vous propose un lien.','link_request',$2)", [body.toCharacterId,r.rows[0].id]);
-        return send(res, 201, { id: r.rows[0].id });
+        return send(res, 410, { error: "Les propositions doivent passer par l'application Demandes de liens." });
       }
       if (action === "link-response") {
         if (!activeCharacter || !body.requestId || !["accepted","declined"].includes(body.status)) return bad(res, "Réponse invalide.");
