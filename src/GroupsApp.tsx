@@ -51,6 +51,7 @@ const houseNames: Record<string, string> = {
 };
 const personName = (person: Person) => [person.first_name, person.last_name].filter(Boolean).join(" ");
 const houseName = (house?: string | null) => house ? houseNames[house] || house : "";
+const houseImage = (house?: string | null) => ({Gryffindor:"/houses/gryffindor.svg",Slytherin:"/houses/slytherin.svg",Ravenclaw:"/houses/ravenclaw.svg",Hufflepuff:"/houses/hufflepuff.svg"} as Record<string,string>)[house||""];
 
 export default function GroupsApp({ current, uploadMedia, setNotice, onRead }: Props) {
   const [section, setSection] = useState<"conversations" | "house" | "new" | "chat">("conversations");
@@ -240,7 +241,7 @@ export default function GroupsApp({ current, uploadMedia, setNotice, onRead }: P
 
   const renderGroup = (group: Group) => (
     <button type="button" className="conversation-row groups-conversation-row" key={group.id} onClick={() => void openGroup(group)}>
-      {group.avatar_url ? <img className="conversation-avatar" src={group.avatar_url} alt="" /> : <span className="conversation-avatar groups-fallback"><Users size={20} /></span>}
+      {group.avatar_url || (group.group_kind === "house" && houseImage(group.house)) ? <img className="conversation-avatar" src={group.avatar_url || houseImage(group.house)} alt={group.group_kind === "house" ? "Blason de " + houseName(group.house) : ""} /> : <span className="conversation-avatar groups-fallback"><Users size={20} /></span>}
       <span className="conversation-copy">
         <strong>{group.group_kind === "house" ? houseName(group.house) : group.title || "Groupe"}</strong>
         <small>{group.member_count} membre(s) · {group.last_message || "Aucun message pour le moment"}</small>
@@ -300,7 +301,7 @@ export default function GroupsApp({ current, uploadMedia, setNotice, onRead }: P
         <div className="chat-page-heading groups-chat-heading">
           <button type="button" className="messages-back" onClick={() => void backToList()}><ArrowLeft size={18} /><span>Retour</span></button>
           <div className="chat-recipient">
-            {selectedGroup.avatar_url ? <img src={selectedGroup.avatar_url} alt="" /> : <span className="conversation-avatar fallback"><Users size={18} /></span>}
+            {selectedGroup.avatar_url || (selectedGroup.group_kind === "house" && houseImage(selectedGroup.house)) ? <img src={selectedGroup.avatar_url || houseImage(selectedGroup.house)} alt={selectedGroup.group_kind === "house" ? "Blason de " + houseName(selectedGroup.house) : ""} /> : <span className="conversation-avatar fallback"><Users size={18} /></span>}
             <span><strong>{selectedGroup.group_kind === "house" ? houseName(selectedGroup.house) : selectedGroup.title || "Groupe"}</strong><small>{selectedGroup.member_count} membre(s) · {selectedGroup.group_kind === "house" ? "Groupe de maison" : selectedGroup.is_admin ? "Administrateur" : "Conversation de groupe"}</small></span>
           </div>
         </div>
