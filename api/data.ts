@@ -185,6 +185,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (r.rowCount) { const owner=await databasePool.query("SELECT created_by_character_id,title FROM agenda_events WHERE id=$1",[body.eventId]); if(owner.rowCount&&owner.rows[0].created_by_character_id&&owner.rows[0].created_by_character_id!==activeCharacter) await databasePool.query("INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'agenda_response','Réponse à votre invitation',$2,'agenda_event',$3)",[owner.rows[0].created_by_character_id,body.response==="accepted"?"Un personnage a accepté votre invitation.":"Un personnage a décliné votre invitation.",body.eventId]); }
         return send(res, r.rowCount ? 200 : 404, { ok: Boolean(r.rowCount) });
       }
+      if (action === "conversation-read") {
+        if (!activeCharacter || !body.conversationId) return bad(res,"Conversation invalide.");
+        const allowed = await databasePool.query(
+          "SELECT 1 FROM conversation_members WHERE conversation_id=$1 AND character_id=$2",
+          [body.conversationId, activeCharacter],
+        );
+        if (!allowed.rowCount) return send(res,403,{error:"Conversation inaccessible."});
+        await databasePool.query(
+          "UPDATE notifications SET read_at=COALESCE(read_at,now()) WHERE character_id=$1 AND target_type='conversation' AND target_id=$2 AND notification_type='message'",
+          [activeCharacter, body.conversationId],
+        );
+        return send(res,200,{ok:true});
+      }
       if (action === "notification-read") {
         if (!activeCharacter || !body.notificationId) return bad(res,"Notification invalide.");
         const r = await databasePool.query("UPDATE notifications SET read_at=now() WHERE id=$1 AND character_id=$2 RETURNING id", [body.notificationId,activeCharacter]);
