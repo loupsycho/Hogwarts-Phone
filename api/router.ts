@@ -8,7 +8,7 @@ import media from "../serverless/media.js";
 import profile from "../serverless/profile.js";
 import token from "../serverless/token.js";
 
-// Keep each API module separate while using one Vercel function entry point.
+// The original application handlers stay separate; Vercel routes them here.
 export const config = { api: { bodyParser: { sizeLimit: "16mb" } } };
 
 const routes: Record<string, (req: VercelRequest, res: VercelResponse) => unknown> = {
@@ -23,7 +23,7 @@ const routes: Record<string, (req: VercelRequest, res: VercelResponse) => unknow
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const route = Array.isArray(req.query.path) ? req.query.path.join("/") : String(req.query.path ?? "");
+  const route = String(req.query.route ?? "");
   const target = routes[route];
   if (!target) return res.status(404).json({ error: "Route API introuvable." });
   return target(req, res);

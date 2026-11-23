@@ -1,3 +1,41 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth-router?route=:path*"
+    },
+    {
+      "source": "/api/account/bootstrap",
+      "destination": "/api/router?route=account/bootstrap"
+    },
+    {
+      "source": "/api/agenda",
+      "destination": "/api/router?route=agenda"
+    },
+    {
+      "source": "/api/data",
+      "destination": "/api/router?route=data"
+    },
+    {
+      "source": "/api/groups",
+      "destination": "/api/router?route=groups"
+    },
+    {
+      "source": "/api/instagram",
+      "destination": "/api/router?route=instagram"
+    },
+    {
+      "source": "/api/media",
+      "destination": "/api/router?route=media"
+    },
+    {
+      "source": "/api/profile",
+      "destination": "/api/router?route=profile"
+    },
+    {
+      "source": "/api/token",
+      "destination": "/api/router?route=token"
+    }
+  ]
 }
