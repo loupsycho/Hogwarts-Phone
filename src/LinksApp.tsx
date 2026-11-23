@@ -22,7 +22,7 @@ const presets:LinkItem[] = [
 const categoryLabel:Record<string,string>={romance:"Amour",friendship:"Amitié",family:"Famille",rivalry:"Rivalité / ennemis",past:"Anciennes relations",other:"Autres"};
 const nameOf=(p:{first_name?:string;last_name?:string})=>[p.first_name,p.last_name].filter(Boolean).join(" ");
 const dateOf=(v:string)=>new Date(v).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
-const tokenHeaders=()=>{const token=localStorage.getItem("hogwarts_session");return token?{Authorization:"Bearer "+token}:{};};
+const tokenHeaders=():Record<string,string>=>{const token=localStorage.getItem("hogwarts_session");return token?{Authorization:"Bearer "+token}:{};};
 
 export default function LinksApp({current}:Props){
  const [dashboard,setDashboard]=useState<Dashboard>({profile:null,profiles:[],requests:[],relationships:[],discussions:[]});
