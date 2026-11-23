@@ -82,3 +82,15 @@
 .instagram-bottom-nav button svg{width:20px;height:20px;stroke-width:1.8}
 .instagram-bottom-nav button.active{color:var(--gold)}
 @media(max-width:420px){.instagram-heading h3{font-size:27px}.instagram-post-media{max-height:390px}.instagram-profile-summary>img,.instagram-profile-summary>span{width:64px;height:64px}}
+
+.instagram-mention-picker{display:flex;flex-direction:column;gap:7px;padding:11px;border:1px solid rgba(197,165,107,.22);border-radius:10px;background:rgba(255,255,255,.025)}
+.instagram-mention-label{font-size:11px;color:var(--gold);font-weight:700}
+.instagram-mention-picker>input{width:100%;padding:9px 10px;border:1px solid rgba(197,165,107,.22);border-radius:8px;background:rgba(0,0,0,.18);color:#f4ead7;font:inherit;font-size:11px;outline:none}
+.instagram-mentioned-list{display:flex;flex-wrap:wrap;gap:6px}
+.instagram-mentioned-list button{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid rgba(197,165,107,.3);border-radius:20px;background:rgba(197,165,107,.1);color:#f4ead7;font-size:10px}
+.instagram-mention-results{display:flex;flex-direction:column;max-height:170px;overflow:auto;border:1px solid rgba(197,165,107,.2);border-radius:8px}
+.instagram-mention-results button{display:flex;align-items:center;gap:8px;padding:8px 10px;border:0;border-bottom:1px solid rgba(197,165,107,.12);background:rgba(0,0,0,.18);color:#f4ead7;text-align:left;font-size:11px}
+.instagram-mention-results button:last-child{border-bottom:0}
+.instagram-mention-results img{width:26px;height:26px;border-radius:50%;object-fit:cover}
+.instagram-bottom-nav button{position:relative}
+.instagram-nav-badge{position:absolute;top:0;right:1px;min-width:16px;height:16px;padding:0 4px;border-radius:12px;background:var(--burgundy);color:#fff;font-size:9px;line-height:16px;text-align:center}
