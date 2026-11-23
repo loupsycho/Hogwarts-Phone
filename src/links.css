@@ -96,3 +96,8 @@
 .links-modal-tags{justify-content:flex-start}
 .links-form-modal{padding:15px;border:1px solid #c5a56b66;border-radius:12px;background:#121917;color:#eee2ce}
 @media(max-width:380px){.links-choice-grid,.links-profile-grid{grid-template-columns:1fr}.links-bump-card{align-items:flex-start;flex-direction:column}}
+
+
+.links-tab-badge{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;border-radius:20px;background:#8e3441;color:#fff;font:700 9px 'DM Sans',sans-serif}
+.links-browse-hint{margin:4px 0 0;color:#d7c69f;font:10px/1.45 'DM Sans',sans-serif;text-align:center}
+.links-profile-card{gap:5px}
