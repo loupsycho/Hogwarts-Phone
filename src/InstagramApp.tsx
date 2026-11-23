@@ -222,7 +222,7 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
   async function deletePost(postId: string) {
     if (!window.confirm("Supprimer définitivement cette publication ?")) return;
     try {
-      await call("post", "DELETE", { postId });
+      await call("post", "DELETE", {}, { postId });
       await loadFeed();
       if (profile?.profile?.id) await openProfile(profile.profile.id);
       setNotice("Publication supprimée.");
@@ -306,9 +306,20 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
       <div className="instagram-heading">
         <div>
           <p className="eyebrow">LE RÉSEAU DES SORCIERS</p>
-          <h3>Instagram <span>✦</span></h3>
+          <h3>Wizardgram <span>✦</span></h3>
         </div>
       </div>
+
+      <nav className="instagram-bottom-nav" aria-label="Navigation Instagram">
+        <button type="button" className={section === "feed" ? "active" : ""} onClick={() => { setSection("feed"); setProfile(null); }} aria-label="Accueil"><Home /></button>
+        <button type="button" className={section === "search" ? "active" : ""} onClick={() => { setSection("search"); setProfile(null); }} aria-label="Rechercher"><Search /></button>
+        <button type="button" className={section === "publish" ? "active" : ""} onClick={() => { setSection("publish"); setProfile(null); }} aria-label="Publier"><PlusSquare /></button>
+        <button type="button" className={section === "notifications" ? "active" : ""} onClick={() => { setProfile(null); void openNotifications(); }} aria-label="Notifications">
+          <Heart />
+          {unreadCount > 0 && <span className="instagram-nav-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+        </button>
+        <button type="button" className={section === "profile" ? "active" : ""} onClick={() => void openProfile(current.id)} aria-label="Mon profil"><UserRound /></button>
+      </nav>
 
       {section === "feed" && <div className="instagram-feed">
         {feed.length === 0 && <div className="instagram-empty"><Camera size={25} /><strong>Aucune publication pour le moment</strong><span>Les photos et vidéos de la communauté apparaîtront ici.</span></div>}
@@ -422,16 +433,7 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
         </> : <p className="instagram-empty-text">Chargement du profil…</p>}
       </div>}
 
-      <nav className="instagram-bottom-nav" aria-label="Navigation Instagram">
-        <button type="button" className={section === "feed" ? "active" : ""} onClick={() => { setSection("feed"); setProfile(null); }} aria-label="Accueil"><Home /></button>
-        <button type="button" className={section === "search" ? "active" : ""} onClick={() => { setSection("search"); setProfile(null); }} aria-label="Rechercher"><Search /></button>
-        <button type="button" className={section === "publish" ? "active" : ""} onClick={() => { setSection("publish"); setProfile(null); }} aria-label="Publier"><PlusSquare /></button>
-        <button type="button" className={section === "notifications" ? "active" : ""} onClick={() => { setProfile(null); void openNotifications(); }} aria-label="Notifications">
-          <Heart />
-          {unreadCount > 0 && <span className="instagram-nav-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>}
-        </button>
-        <button type="button" className={section === "profile" ? "active" : ""} onClick={() => void openProfile(current.id)} aria-label="Mon profil"><UserRound /></button>
-      </nav>
+
     </section>
   );
 }
