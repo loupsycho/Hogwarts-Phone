@@ -14,8 +14,8 @@ export default function AgendaApp({current,initialEventId}:{current:Person;initi
  const [form,setForm]=useState({title:"",description:"",location:"",date:dateValue(now),time:"18:00",audience:"all"});
  const monthKey=key(month),todayKey=key(now),nextKey=key(new Date(now.getFullYear(),now.getMonth()+1,1)),nextAllowed=now.getDate()>=25;
  const call=async(action:string,method="GET",data:Record<string,unknown>={})=>{const token=localStorage.getItem("hogwarts_session");const r=await fetch("/api/agenda?action="+action+"&characterId="+encodeURIComponent(current.id),{method,credentials:"include",headers:{"Content-Type":"application/json",...(token?{Authorization:"Bearer "+token}:{})},...(method==="GET"?{}:{body:JSON.stringify({...data,characterId:current.id})})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||"Une erreur est survenue.");return d;};
- const refresh=async()=>{const d=await call("list");setEvents(d.events||[]);};
- useEffect(()=>{void refresh().catch(e=>setNotice(e.message));},[current.id]);
+ const refresh=async()=>{const d=await call("list");const list=(d.events||[]) as Event[];setEvents(list);return list;};
+ useEffect(()=>{void refresh().then(list=>{if(initialEventId){const target=list.find(e=>e.id===initialEventId);if(target)setSelected(target);}}).catch(e=>setNotice(e.message));},[current.id,initialEventId]);
  const monthEvents=useMemo(()=>events.filter(e=>key(new Date(e.starts_at))===monthKey),[events,monthKey]);
  const first=(new Date(month.getFullYear(),month.getMonth(),1).getDay()+6)%7,days=new Date(month.getFullYear(),month.getMonth()+1,0).getDate();
  const cells:(number|null)[]=[...Array(first).fill(null),...Array.from({length:days},(_,i)=>i+1)];while(cells.length%7)cells.push(null);
