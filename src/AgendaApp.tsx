@@ -9,7 +9,7 @@ const houseLabel=(v:string|null)=>houses.find(h=>h.value===v)?.label||v||"";
 const key=(d:Date)=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
 const dateValue=(d:Date)=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 const color=(e:Event)=>(audiences.find(a=>a.value===(e.visibility==="house"?"house:"+e.house:e.visibility))||audiences[0]).color;
-export default function AgendaApp({current}:{current:Person}){
+export default function AgendaApp({current,initialEventId}:{current:Person;initialEventId?:string}){
  const now=new Date(),[month,setMonth]=useState(new Date(now.getFullYear(),now.getMonth(),1)),[events,setEvents]=useState<Event[]>([]),[selected,setSelected]=useState<Event|null>(null),[formOpen,setFormOpen]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState("");
  const [form,setForm]=useState({title:"",description:"",location:"",date:dateValue(now),time:"18:00",audience:"all"});
  const monthKey=key(month),todayKey=key(now),nextKey=key(new Date(now.getFullYear(),now.getMonth()+1,1)),nextAllowed=now.getDate()>=25;
