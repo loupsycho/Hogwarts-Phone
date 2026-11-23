@@ -752,3 +752,5 @@ button {
 .agenda-list-item,.agenda-detail.content-card,.agenda-form.content-card{background:#151a18!important;}
 .agenda-participant-groups section{background:#202723!important;}
 .agenda-detail.content-card{border-color:#c5a56b77;}
+
+.agenda-event-chip{background:color-mix(in srgb,var(--event-color) 38%,#151a18)!important;}
