@@ -1,0 +1,84 @@
+.instagram-app{display:flex;flex-direction:column;gap:14px;padding-bottom:76px;color:var(--parchment);min-width:0}
+.instagram-heading{display:flex;align-items:center;justify-content:space-between;padding:8px 2px 12px;border-bottom:1px solid rgba(197,165,107,.22)}
+.instagram-heading h3{font-family:'Cormorant Garamond',serif;font-size:30px;margin:0;color:#f5ead5;letter-spacing:.3px}
+.instagram-heading h3 span{color:var(--gold);font-size:17px}
+.instagram-header-heart{position:relative;border:1px solid rgba(197,165,107,.35);background:rgba(197,165,107,.08);color:var(--parchment);border-radius:50%;width:42px;height:42px;display:grid;place-items:center}
+.instagram-header-heart span{position:absolute;right:-5px;top:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:20px;background:var(--burgundy);color:#fff;font-size:10px;display:grid;place-items:center}
+.instagram-feed{display:flex;flex-direction:column;gap:14px}
+.instagram-post{overflow:hidden;border:1px solid rgba(197,165,107,.2);border-radius:15px;background:linear-gradient(145deg,rgba(35,31,31,.96),rgba(15,19,22,.98));transition:border-color .2s,box-shadow .2s}
+.instagram-post.is-highlighted{border-color:var(--gold);box-shadow:0 0 0 2px rgba(197,165,107,.17)}
+.instagram-post-author{display:flex;align-items:center;gap:10px;padding:12px 13px;width:100%;text-align:left;border:0;background:transparent;color:inherit}
+.instagram-post-author>img,.instagram-post-author>span{width:38px;height:38px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:#302a28;color:var(--gold);border:1px solid rgba(197,165,107,.45)}
+.instagram-post-author>span:last-child{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:auto;height:auto;border:0;background:none}
+.instagram-post-author strong{font-size:13px}
+.instagram-post-author small{font-size:10px;color:var(--muted)}
+.instagram-post-media{width:100%;max-height:440px;object-fit:cover;display:block;background:#08090c}
+.instagram-post-content{padding:10px 13px 12px}
+.instagram-post-actions{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:11px}
+.instagram-post-actions button{border:0;background:none;color:var(--parchment);padding:3px;display:grid;place-items:center}
+.instagram-post-actions button svg{width:20px;height:20px}
+.instagram-post-actions button .is-liked{color:#c65a66}
+.instagram-post-actions .instagram-delete-post{margin-left:auto;color:#d69a91}
+.instagram-comment-count{margin-left:7px;display:flex;align-items:center;gap:4px}
+.instagram-caption{font-size:12px;line-height:1.5;margin:9px 0 5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.instagram-caption strong{color:#f5ead5;margin-right:4px}
+.instagram-date{display:block;color:#877f72;font-size:9px;margin:7px 0 9px}
+.instagram-comments{display:flex;flex-direction:column;gap:9px}
+.instagram-comment{display:flex;align-items:flex-start;gap:7px;font-size:11px;min-width:0}
+.instagram-comment.is-reply{margin-top:8px;margin-left:12px}
+.instagram-comment-avatar{flex:0 0 23px;width:23px;height:23px;border-radius:50%;overflow:hidden;background:#302a28;color:var(--gold);display:grid;place-items:center}
+.instagram-comment-avatar img{width:100%;height:100%;object-fit:cover}
+.instagram-comment-main{min-width:0;flex:1}
+.instagram-comment-main p{margin:2px 0 3px;line-height:1.45;overflow-wrap:anywhere}
+.instagram-comment-main p strong{color:#f1e5ce;margin-right:4px}
+.instagram-comment-actions{display:flex;gap:12px}
+.instagram-comment-actions button{display:flex;align-items:center;gap:3px;border:0;background:none;color:#9c927f;font-size:10px;padding:2px 0}
+.instagram-reply-form,.instagram-comment-form{display:flex;align-items:center;gap:7px;border-top:1px solid rgba(197,165,107,.13);margin-top:9px;padding-top:8px}
+.instagram-reply-form input,.instagram-comment-form input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:#f4ead7;font:inherit;font-size:11px}
+.instagram-reply-form button,.instagram-comment-form button{border:0;background:none;color:var(--gold);padding:4px;display:grid;place-items:center}
+.instagram-search-page,.instagram-notifications,.instagram-profile-page{display:flex;flex-direction:column;gap:12px}
+.instagram-search-box{display:flex;align-items:center;gap:9px;padding:11px 13px;border:1px solid rgba(197,165,107,.3);border-radius:12px;background:rgba(255,255,255,.035);color:var(--gold)}
+.instagram-search-box input{border:0;outline:0;background:none;color:#f4ead7;flex:1;min-width:0;font:inherit;font-size:12px}
+.instagram-search-results{display:flex;flex-direction:column}
+.instagram-search-person{display:flex;align-items:center;gap:11px;width:100%;padding:11px 4px;border:0;border-bottom:1px solid rgba(197,165,107,.14);background:none;color:inherit;text-align:left}
+.instagram-search-person>img,.instagram-search-person>span:first-child{width:42px;height:42px;flex:0 0 42px;border-radius:50%;object-fit:cover;background:#302a28;color:var(--gold);display:grid;place-items:center}
+.instagram-search-person>span:nth-child(2){display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.instagram-search-person strong{font-size:12px}
+.instagram-search-person small{font-size:10px;color:var(--muted)}
+.instagram-result-arrow{transform:rotate(180deg);color:var(--gold)}
+.instagram-publish{display:flex;flex-direction:column;gap:12px;padding:17px;border:1px solid rgba(197,165,107,.24);border-radius:15px;background:linear-gradient(145deg,rgba(35,31,31,.96),rgba(15,19,22,.98))}
+.instagram-publish h4,.instagram-notifications h4{font-family:'Cormorant Garamond',serif;font-size:24px;margin:-7px 0 3px}
+.instagram-publish textarea{width:100%;resize:vertical;min-height:110px;padding:12px;border-radius:10px;border:1px solid rgba(197,165,107,.25);background:rgba(0,0,0,.2);color:#f4ead7;font:inherit;font-size:12px;outline:none}
+.instagram-upload{display:flex;align-items:center;justify-content:center;gap:9px;padding:13px;border:1px dashed rgba(197,165,107,.48);border-radius:10px;color:var(--parchment);font-size:12px;cursor:pointer}
+.instagram-upload input{display:none}
+.instagram-upload-ready{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px}
+.instagram-upload-ready button{margin-left:auto;border:0;background:none;color:var(--gold)}
+.instagram-publish-button,.instagram-follow-button{border:1px solid rgba(197,165,107,.55);border-radius:10px;background:linear-gradient(135deg,#6a3037,#3c2228);color:#f8ecd7;padding:12px;font:inherit;font-size:12px;font-weight:700}
+.instagram-notification{display:flex;align-items:center;gap:11px;text-align:left;padding:12px;border:1px solid rgba(197,165,107,.17);border-radius:12px;background:rgba(255,255,255,.025);color:inherit}
+.instagram-notification.unread{background:rgba(197,165,107,.09);border-color:rgba(197,165,107,.38)}
+.instagram-notification-icon{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#c66b73;background:rgba(125,45,55,.2);flex:0 0 36px}
+.instagram-notification>span:last-child{display:flex;flex-direction:column;gap:4px;min-width:0}
+.instagram-notification strong{font-size:12px}
+.instagram-notification small{font-size:10px;color:var(--muted);line-height:1.4}
+.instagram-profile-summary{display:flex;align-items:center;gap:14px;padding:12px 2px}
+.instagram-profile-summary>img,.instagram-profile-summary>span{width:72px;height:72px;border-radius:50%;object-fit:cover;background:#302a28;color:var(--gold);display:grid;place-items:center;border:2px solid rgba(197,165,107,.5)}
+.instagram-profile-summary h4{font-family:'Cormorant Garamond',serif;font-size:23px;margin:0 0 4px}
+.instagram-profile-summary p{font-size:11px;color:var(--muted);margin:0}
+.instagram-profile-stats{display:flex;justify-content:space-around;padding:12px 4px;border-top:1px solid rgba(197,165,107,.2);border-bottom:1px solid rgba(197,165,107,.2);font-size:10px;color:var(--muted);text-align:center}
+.instagram-profile-stats span{display:flex;flex-direction:column;gap:3px}
+.instagram-profile-stats strong{font-size:15px;color:#f5ead5}
+.instagram-bio{font-size:12px;line-height:1.5;white-space:pre-wrap}
+.instagram-follow-button{padding:9px 15px;align-self:stretch}
+.instagram-profile-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+.instagram-profile-grid button{aspect-ratio:1;border:0;padding:0;background:#171717;overflow:hidden}
+.instagram-profile-grid img,.instagram-profile-grid video{width:100%;height:100%;object-fit:cover}
+.instagram-profile-delete{display:flex;align-items:center;gap:7px;align-self:flex-start;border:0;background:none;color:#d69a91;font-size:10px}
+.instagram-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:42px 18px;border:1px dashed rgba(197,165,107,.25);border-radius:14px;color:var(--muted);text-align:center}
+.instagram-empty svg{color:var(--gold)}
+.instagram-empty strong{color:#f2e6d1;font-size:13px}
+.instagram-empty span,.instagram-empty-text{font-size:11px;color:var(--muted);text-align:center;line-height:1.5}
+.instagram-bottom-nav{position:sticky;bottom:0;z-index:4;display:flex;justify-content:space-around;align-items:center;margin-top:auto;padding:10px 5px calc(10px + env(safe-area-inset-bottom));border:1px solid rgba(197,165,107,.22);border-radius:14px;background:rgba(13,15,19,.96);backdrop-filter:blur(12px)}
+.instagram-bottom-nav button{width:40px;height:36px;border:0;background:none;color:#938975;display:grid;place-items:center}
+.instagram-bottom-nav button svg{width:20px;height:20px;stroke-width:1.8}
+.instagram-bottom-nav button.active{color:var(--gold)}
+@media(max-width:420px){.instagram-heading h3{font-size:27px}.instagram-post-media{max-height:390px}.instagram-profile-summary>img,.instagram-profile-summary>span{width:64px;height:64px}}
