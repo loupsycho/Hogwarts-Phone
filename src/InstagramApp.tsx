@@ -372,7 +372,7 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
           </div>}
         </div>
         <label className="instagram-upload">
-          <Camera size={19} /><span>Choisir une photo ou une vidéo</span><input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" onChange={async event => {
+          <Camera size={19} /><span>Choisir une photo ou une vidéo</span><input type="file" accept="image/*,video/mp4,video/webm" onChange={async event => {
             const file = event.target.files?.[0];
             if (!file) return;
             setBusy(true);
