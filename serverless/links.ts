@@ -96,9 +96,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === "POST" && action === "propose") {
       const targetId = String(body.toCharacterId ?? "");
-      const relationshipType = String(body.relationshipType ?? "").trim().slice(0, 120);
+      const rawRelationshipType = String(body.relationshipType ?? "").trim().slice(0, 120);
       const category = categories.has(String(body.relationshipCategory ?? "")) ? String(body.relationshipCategory) : "other";
-      if (!targetId || targetId === characterId || !relationshipType) return bad(res, "Proposition invalide.");
+      if (!targetId || targetId === characterId || !rawRelationshipType) return bad(res, "Proposition invalide.");
+      const relationshipType = category === "other" && !/^autre\\s*:/i.test(rawRelationshipType) ? "Autre : " + rawRelationshipType : rawRelationshipType;
       const target = await availableCharacter(targetId);
       if (!target.rowCount) return send(res, 404, { error: "Ce personnage n'est pas disponible." });
       const published = await databasePool.query("SELECT 1 FROM link_profiles WHERE character_id=$1", [targetId]);
@@ -135,9 +136,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === "POST" && action === "edit-request") {
-      const requestId = String(body.requestId ?? ""), relationshipType = String(body.relationshipType ?? "").trim().slice(0,120);
+      const requestId = String(body.requestId ?? ""), rawRelationshipType = String(body.relationshipType ?? "").trim().slice(0,120);
       const category = categories.has(String(body.relationshipCategory ?? "")) ? String(body.relationshipCategory) : "other";
-      if (!requestId || !relationshipType) return bad(res, "Proposition invalide.");
+      if (!requestId || !rawRelationshipType) return bad(res, "Proposition invalide.");
+      const relationshipType = category === "other" && !/^autre\\s*:/i.test(rawRelationshipType) ? "Autre : " + rawRelationshipType : rawRelationshipType;
       const target = await databasePool.query("SELECT to_character_id FROM link_requests WHERE id=$1 AND from_character_id=$2 AND request_status='pending'", [requestId,characterId]);
       if (!target.rowCount) return send(res, 404, { error: "Cette proposition ne peut plus être modifiée." });
       const targetPerson = await availableCharacter(target.rows[0].to_character_id);
