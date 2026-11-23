@@ -60,8 +60,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
            JOIN characters c ON c.id=p.character_id
            JOIN app_users u ON u.id=c.owner_user_id AND u.account_status='approved'
            LEFT JOIN media_assets ma ON ma.id=p.media_id
+           WHERE ($2::uuid IS NULL OR p.id=$2::uuid)
            ORDER BY p.created_at DESC LIMIT 100`,
-          [characterId || null],
+          [characterId || null, req.query.postId ? String(req.query.postId) : null],
         );
         return send(res, 200, { posts: result.rows });
       }
