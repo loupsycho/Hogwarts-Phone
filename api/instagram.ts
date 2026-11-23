@@ -156,7 +156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const actor = await ownCharacter(characterId);
           if (owner.rowCount && owner.rows[0].character_id !== characterId) {
             await databasePool.query(
-              "INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'instagram_like','Nouveau J’aime,$2,'instagram_post',$3)",
+              "INSERT INTO notifications(character_id,notification_type,title,body,target_type,target_id) VALUES($1,'instagram_like','Nouveau J’aime',$2,'instagram_post',$3)",
               [owner.rows[0].character_id, `${actor?.first_name ?? "Un personnage"} aime votre publication.`, body.postId],
             );
           }
