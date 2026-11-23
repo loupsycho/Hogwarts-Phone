@@ -15,6 +15,7 @@ type Group = {
   title: string | null;
   group_kind: "custom" | "house";
   house: string | null;
+  created_by_character_id?: string | null;
   avatar_url?: string | null;
   participants?: string | null;
   last_message?: string | null;
@@ -314,7 +315,7 @@ export default function GroupsApp({ current, uploadMedia, setNotice, onRead }: P
           <div className="groups-members-title"><strong>Membres du groupe</strong><span>{selectedGroup.members?.length || 0}</span></div>
           {(selectedGroup.members || []).map(person => <div className="groups-member-row" key={person.id}>
             {person.avatar_url ? <img src={person.avatar_url} alt="" /> : <span className="groups-contact-fallback"><Users size={15} /></span>}
-            <span><strong>{personName(person)}</strong>{person.id === selectedGroup.members?.[0]?.id && selectedGroup.is_admin && <small><Shield size={11} /> Administrateur</small>}</span>
+            <span><strong>{personName(person)}</strong>{person.id === selectedGroup.created_by_character_id && <small><Shield size={11} /> Administrateur</small>}</span>
             {selectedGroup.is_admin && selectedGroup.group_kind === "custom" && person.id !== current.id && <button type="button" onClick={() => void removeMember(person)}>Retirer</button>}
           </div>)}
           {selectedGroup.is_admin && selectedGroup.group_kind === "custom" && <>
