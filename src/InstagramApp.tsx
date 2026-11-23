@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import {
   ArrowLeft, Camera, Heart, Home, MessageCircle, PlusSquare, Search, Send,
   Trash2, UserRound, Video, X,
@@ -135,7 +136,7 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
     } catch (error) { setNotice(error instanceof Error ? error.message : "Action impossible."); }
   }
 
-  async function publish(event: React.FormEvent) {
+  async function publish(event: FormEvent) {
     event.preventDefault();
     if (!caption.trim() && !media?.id) {
       setNotice("Ajoute une légende ou une photo/vidéo.");
@@ -189,7 +190,7 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
   }
 
   const commentsFor = (post: any) => post.comment_list || [];
-  const renderComment = (post: any, comment: any, depth = 0): React.ReactNode => (
+  const renderComment = (post: any, comment: any, depth = 0): ReactNode => (
     <div className={"instagram-comment " + (depth ? "is-reply" : "")} key={comment.id}>
       <div className="instagram-comment-avatar">
         {comment.avatarUrl ? <img src={comment.avatarUrl} alt="" /> : <UserRound size={14} />}
