@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { ArrowLeft, Check, Clock3, HeartHandshake, MessageCircle, Plus, Search, Send, Trash2, UserRound, X } from "lucide-react";
 import "./links.css";
 
-type Person = { id:string; first_name:string; last_name:string; character_type:string; house?:string|null; role_title?:string|null; avatar_url?:string|null; sexual_orientation?:string|null; biography?:string|null };
+type Person = { id:string; first_name?:string; last_name?:string; character_type?:string; house?:string|null; role_title?:string|null; avatar_url?:string|null; sexual_orientation?:string|null; biography?:string|null };
 type LinkItem = { type:string; category:string; detail?:string };
 type Profile = { character_id:string; description:string|null; desired_links:LinkItem[]; published_at:string; last_bumped_at:string; next_bump_at:string; first_name:string; last_name:string; character_type:string; house:string|null; avatar_url:string|null; sexual_orientation:string|null; role_title:string|null };
 type Request = { id:string; from_character_id:string; to_character_id:string; relationship_type:string; relationship_category:string; message:string|null; request_status:string; created_at:string; ended_at:string|null; from_first_name:string; from_last_name:string; from_avatar_url:string|null; from_character_type:string; to_first_name:string; to_last_name:string; to_avatar_url:string|null; to_character_type:string };
@@ -76,7 +77,7 @@ export default function LinksApp({current}:Props){
  const nextBump=dashboard.profile?.next_bump_at?new Date(dashboard.profile.next_bump_at):null;
  const canBump=Boolean(dashboard.profile&&nextBump&&Date.now()>=nextBump.getTime());
 
- async function saveProfile(e:React.FormEvent){
+ async function saveProfile(e:FormEvent){
   e.preventDefault();setBusy(true);setNotice("");
   try{
    const list=[...desired,...customDrafts.map(type=>({type:type.trim(),category:"other",detail:""})).filter(x=>x.type)];
