@@ -82,6 +82,7 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
   const [busy, setBusy] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [highlightPost, setHighlightPost] = useState<string | null>(null);
   const [mentionQuery, setMentionQuery] = useState("");
@@ -220,10 +221,10 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
   }
 
   async function deletePost(postId: string) {
-    if (!window.confirm("Supprimer définitivement cette publication ?")) return;
     try {
-      await call("post", "DELETE", {}, { postId });
-      await loadFeed();
+      await call("delete-post", "POST", { postId });
+      setFeed(posts => posts.filter(post => post.id !== postId));
+      setPostToDelete(null);
       if (profile?.profile?.id) await openProfile(profile.profile.id);
       setNotice("Publication supprimée.");
     } catch (error) { setNotice(error instanceof Error ? error.message : "Suppression impossible."); }
@@ -334,7 +335,7 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
               <button type="button" onClick={() => void togglePostLike(post)} aria-label="Aimer la publication"><Heart fill={post.liked ? "currentColor" : "none"} className={post.liked ? "is-liked" : ""} /></button>
               <span>{post.likes || 0} J’aime</span>
               <span className="instagram-comment-count"><MessageCircle size={16} /> {post.comments || 0}</span>
-              {post.character_id === current.id && <button type="button" className="instagram-delete-post" onClick={() => void deletePost(post.id)} aria-label="Supprimer la publication"><Trash2 size={16} /></button>}
+              {post.character_id === current.id && <button type="button" className="instagram-delete-post" onClick={() => setPostToDelete(post.id)}><Trash2 size={15} /> Supprimer</button>}
             </div>
             {post.caption && <p className="instagram-caption"><strong>{post.first_name}</strong> {post.caption}</p>}
             <small className="instagram-date">{new Date(post.created_at).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" })}</small>
@@ -429,11 +430,21 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
               {post.image_url && (post.media_mime_type?.startsWith("video/") ? <video src={post.image_url} muted playsInline /> : <img src={post.image_url} alt="" />)}
             </button>)}
           </div>
-          {profilePosts.filter((post: any) => post.character_id === current.id).map((post: any) => <button type="button" className="instagram-profile-delete" key={"delete-" + post.id} onClick={() => void deletePost(post.id)}><Trash2 size={14} /> Supprimer une publication</button>)}
+          {profilePosts.filter((post: any) => post.character_id === current.id).map((post: any) => <button type="button" className="instagram-profile-delete" key={"delete-" + post.id} onClick={() => setPostToDelete(post.id)}><Trash2 size={14} /> Supprimer</button>)}
         </> : <p className="instagram-empty-text">Chargement du profil…</p>}
       </div>}
 
 
+      {postToDelete && <div className="instagram-confirm-overlay" role="presentation" onClick={() => setPostToDelete(null)}>
+        <div className="instagram-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="instagram-delete-title" onClick={event => event.stopPropagation()}>
+          <h3 id="instagram-delete-title">Supprimer la publication ?</h3>
+          <p>Cette publication sera définitivement supprimée. Cette action est irréversible.</p>
+          <div className="instagram-confirm-actions">
+            <button type="button" onClick={() => setPostToDelete(null)}>Annuler</button>
+            <button type="button" className="is-danger" onClick={() => void deletePost(postToDelete)}>Supprimer</button>
+          </div>
+        </div>
+      </div>}
     </section>
   );
 }
