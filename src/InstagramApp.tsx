@@ -15,6 +15,7 @@ type InstagramCharacter = {
   character_type?: string | null;
   role_title?: string | null;
   biography?: string | null;
+  followers?: number | string | null;
 };
 
 type InstagramProps = {
