@@ -173,6 +173,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const published = await databasePool.query("SELECT 1 FROM link_profiles WHERE character_id=$1", [targetId]);
       if (!published.rowCount) return send(res,409,{error:"Ce personnage n'a pas publié sa demande de liens."});
       if (requestId) {
+        const belongsToPair = await databasePool.query("SELECT 1 FROM link_requests WHERE id=$1 AND ((from_character_id=$2 AND to_character_id=$3) OR (from_character_id=$3 AND to_character_id=$2))", [requestId,characterId,targetId]);
+        if (!belongsToPair.rowCount) return send(res,403,{error:"Cette proposition ne correspond pas à ces deux personnages."});
         const existing = await databasePool.query("SELECT conversation_id FROM link_discussions WHERE request_id=$1 AND ((character_a_id=$2 AND character_b_id=$3) OR (character_b_id=$2 AND character_a_id=$3))", [requestId,characterId,targetId]);
         if (existing.rowCount) return send(res,200,{conversationId:existing.rows[0].conversation_id});
       }
