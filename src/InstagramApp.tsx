@@ -30,6 +30,45 @@ const displayName = (person: InstagramCharacter) =>
 const houseName = (house?: string | null) =>
   ({ Gryffindor: "Gryffondor", Slytherin: "Serpentard", Ravenclaw: "Serdaigle", Hufflepuff: "Poufsouffle" } as Record<string, string>)[house || ""] || house || "";
 
+async function prepareInstagramUpload(file: File): Promise<File> {
+  const limit = 2.8 * 1024 * 1024;
+  if (file.type.startsWith("video/")) {
+    if (file.size > limit) throw new Error("La vidéo doit faire 2,8 Mo maximum pour être envoyée.");
+    return file;
+  }
+  if (!file.type.startsWith("image/") || file.size <= limit) return file;
+  const url = URL.createObjectURL(file);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image();
+      element.onload = () => resolve(element);
+      element.onerror = () => reject(new Error("Cette image ne peut pas être lue sur l'appareil."));
+      element.src = url;
+    });
+    let scale = Math.min(1, 1920 / Math.max(image.naturalWidth, image.naturalHeight));
+    let quality = 0.84;
+    let blob: Blob | null = null;
+    for (let attempt = 0; attempt < 7; attempt++) {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Compression de l'image indisponible.");
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", quality));
+      if (blob && blob.size <= limit) break;
+      quality = Math.max(0.55, quality - 0.08);
+      if (attempt >= 2) scale *= 0.82;
+    }
+    if (!blob || blob.size > limit) throw new Error("Cette image est trop volumineuse pour être envoyée.");
+    return new File([blob], file.name.replace(/\\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export default function InstagramApp({ current, uploadMedia, setNotice }: InstagramProps) {
   const [section, setSection] = useState<"feed" | "search" | "publish" | "notifications" | "profile">("feed");
   const [feed, setFeed] = useState<any[]>([]);
@@ -44,6 +83,9 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
   const [replyText, setReplyText] = useState("");
   const [commentText, setCommentText] = useState<Record<string, string>>({});
   const [highlightPost, setHighlightPost] = useState<string | null>(null);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionResults, setMentionResults] = useState<InstagramCharacter[]>([]);
+  const [mentionedCharacters, setMentionedCharacters] = useState<InstagramCharacter[]>([]);
 
   async function call(action: string, method = "GET", data: Record<string, unknown> = {}, queryValues: Record<string, string> = {}) {
     const params = new URLSearchParams({ action, characterId: current.id, ...queryValues });
@@ -101,6 +143,15 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
   }, [query, section]);
 
   const unreadCount = notifications.filter(item => !item.read_at).length;
+  async function openNotifications() {
+    setSection("notifications");
+    try {
+      await call("read-all-notifications", "POST");
+      setNotifications(previous => previous.map(item => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Notifications indisponibles.");
+    }
+  }
   const ownProfile = profile?.profile?.id === current.id;
 
   async function togglePostLike(post: any) {
@@ -145,9 +196,16 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
     }
     setBusy(true);
     try {
-      await call("post", "POST", { caption: caption.trim(), mediaId: media?.id });
+      await call("post", "POST", {
+        caption: caption.trim(),
+        mediaId: media?.id,
+        mentionCharacterIds: mentionedCharacters.map(person => person.id),
+      });
       setCaption("");
       setMedia(null);
+      setMentionQuery("");
+      setMentionedCharacters([]);
+      setMentionResults([]);
       await loadFeed();
       setSection("feed");
       setNotice("Ta publication est en ligne.");
@@ -212,6 +270,21 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
     </div>
   );
 
+  useEffect(() => {
+    if (!mentionQuery.trim()) { setMentionResults([]); return; }
+    const timer = window.setTimeout(async () => {
+      try {
+        const data = await call("search", "GET", {}, { q: mentionQuery.trim() });
+        setMentionResults((data.characters || []).filter((person: InstagramCharacter) =>
+          person.id !== current.id && !mentionedCharacters.some(selected => selected.id === person.id)
+        ));
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Recherche impossible.");
+      }
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [mentionQuery, mentionedCharacters, current.id]);
+
   const profilePosts = useMemo(() => profile?.posts || [], [profile]);
 
   return (
@@ -221,10 +294,6 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
           <p className="eyebrow">LE RÉSEAU DES SORCIERS</p>
           <h3>Instagram <span>✦</span></h3>
         </div>
-        <button type="button" className="instagram-header-heart" onClick={() => { setSection("notifications"); void loadNotifications(); }} aria-label="Notifications">
-          <Heart size={22} />
-          {unreadCount > 0 && <span>{unreadCount > 9 ? "9+" : unreadCount}</span>}
-        </button>
       </div>
 
       {section === "feed" && <div className="instagram-feed">
@@ -271,12 +340,34 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
         <p className="eyebrow">PARTAGER UN INSTANT</p>
         <h4>Nouvelle publication</h4>
         <textarea value={caption} onChange={event => setCaption(event.target.value)} placeholder="Quoi de neuf dans le monde des sorciers ?" rows={4} />
+        <div className="instagram-mention-picker">
+          <label className="instagram-mention-label">Identifier des personnages</label>
+          {mentionedCharacters.length > 0 && <div className="instagram-mentioned-list">
+            {mentionedCharacters.map(person => <button type="button" key={person.id} onClick={() => setMentionedCharacters(previous => previous.filter(item => item.id !== person.id))}>
+              @{displayName(person)} <X size={12} />
+            </button>)}
+          </div>}
+          <input value={mentionQuery} onChange={event => setMentionQuery(event.target.value)} placeholder="Rechercher un personnage à identifier…" />
+          {mentionResults.length > 0 && <div className="instagram-mention-results">
+            {mentionResults.map(person => <button type="button" key={person.id} onClick={() => {
+              setMentionedCharacters(previous => [...previous, person]);
+              setMentionQuery("");
+              setMentionResults([]);
+            }}>
+              {person.avatar_url ? <img src={person.avatar_url} alt="" /> : <UserRound size={16} />}
+              <span>{displayName(person)}</span>
+            </button>)}
+          </div>}
+        </div>
         <label className="instagram-upload">
           <Camera size={19} /><span>Choisir une photo ou une vidéo</span><input type="file" accept="image/*,video/mp4,video/webm,video/quicktime" onChange={async event => {
             const file = event.target.files?.[0];
             if (!file) return;
             setBusy(true);
-            try { setMedia(await uploadMedia(file, "instagram")); }
+            try {
+              const preparedFile = await prepareInstagramUpload(file);
+              setMedia(await uploadMedia(preparedFile, "instagram"));
+            }
             catch (error) { setNotice(error instanceof Error ? error.message : "Importation impossible."); }
             finally { setBusy(false); event.target.value = ""; }
           }} />
@@ -321,7 +412,10 @@ export default function InstagramApp({ current, uploadMedia, setNotice }: Instag
         <button type="button" className={section === "feed" ? "active" : ""} onClick={() => { setSection("feed"); setProfile(null); }} aria-label="Accueil"><Home /></button>
         <button type="button" className={section === "search" ? "active" : ""} onClick={() => { setSection("search"); setProfile(null); }} aria-label="Rechercher"><Search /></button>
         <button type="button" className={section === "publish" ? "active" : ""} onClick={() => { setSection("publish"); setProfile(null); }} aria-label="Publier"><PlusSquare /></button>
-        <button type="button" className={section === "notifications" ? "active" : ""} onClick={() => { setSection("notifications"); setProfile(null); void loadNotifications(); }} aria-label="Notifications"><Heart /></button>
+        <button type="button" className={section === "notifications" ? "active" : ""} onClick={() => { setProfile(null); void openNotifications(); }} aria-label="Notifications">
+          <Heart />
+          {unreadCount > 0 && <span className="instagram-nav-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+        </button>
         <button type="button" className={section === "profile" ? "active" : ""} onClick={() => void openProfile(current.id)} aria-label="Mon profil"><UserRound /></button>
       </nav>
     </section>
