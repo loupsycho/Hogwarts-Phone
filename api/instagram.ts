@@ -284,10 +284,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === "DELETE" && action === "post") {
-      if (!characterId || !body.postId) return send(res, 400, { error: "Publication requise." });
+      const postId = String(body.postId ?? req.query.postId ?? "");
+      if (!characterId || !postId) return send(res, 400, { error: "Publication requise." });
       const result = await databasePool.query(
         "DELETE FROM instagram_posts WHERE id=$1 AND character_id=$2 RETURNING id",
-        [body.postId, characterId],
+        [postId, characterId],
       );
       return send(res, result.rowCount ? 200 : 404, { ok: Boolean(result.rowCount) });
     }
