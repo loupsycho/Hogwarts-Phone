@@ -36,6 +36,7 @@ export default function GazetteAdminApp(){
   const [avatarPhoto,setAvatarPhoto]=useState<File|null>(null);
   const [busy,setBusy]=useState(false);
   const [notice,setNotice]=useState("");
+  const [articleToDelete,setArticleToDelete]=useState<AdminArticle|null>(null);
 
   async function call(action:string,method="GET",data:Record<string,unknown>={},query:Record<string,string>={}){
     const params=new URLSearchParams({action,...query});
@@ -76,10 +77,15 @@ export default function GazetteAdminApp(){
     setBusy(true);try{const media=await uploadGazetteImage(avatarPhoto);await call("admin-avatar","POST",{mediaId:media.id});setAvatarPhoto(null);await refresh();setNotice("Photo de profil de la Gazette mise à jour.");}
     catch(e){setNotice(e instanceof Error?e.message:"Modification impossible.");}finally{setBusy(false);}
   }
-  async function deleteArticle(article:AdminArticle){
-    if(!window.confirm("Supprimer définitivement cette publication ?"))return;
-    try{await call("admin-delete-article","POST",{articleId:article.id});await refresh();setNotice("Publication supprimée.");}
+  function deleteArticle(article:AdminArticle){
+    setArticleToDelete(article);
+  }
+  async function confirmDeleteArticle(){
+    if(!articleToDelete||busy)return;
+    setBusy(true);setNotice("");
+    try{await call("admin-delete-article","POST",{articleId:articleToDelete.id});setArticleToDelete(null);await refresh();setNotice("Publication supprimée.");}
     catch(e){setNotice(e instanceof Error?e.message:"Suppression impossible.");}
+    finally{setBusy(false);}
   }
 
   return <section className="gazette-admin">
@@ -135,5 +141,7 @@ export default function GazetteAdminApp(){
       </article>)}
       {!dashboard.articles.length&&<p className="gazette-admin-empty">Aucune publication enregistrée.</p>}
     </section>
+    {articleToDelete&&<div className="agenda-modal-backdrop" role="presentation" onClick={()=>!busy&&setArticleToDelete(null)}><section className="agenda-detail content-card" role="dialog" aria-modal="true" aria-labelledby="gazette-delete-title" onClick={e=>e.stopPropagation()}><div className="agenda-form-title"><span className="eyebrow">CONFIRMATION</span><button type="button" className="icon-button" disabled={busy} onClick={()=>setArticleToDelete(null)} aria-label="Fermer"><X size={17}/></button></div><h4 id="gazette-delete-title">Supprimer cet article ?</h4><p><strong>{articleToDelete.title}</strong></p><p>Cette suppression est définitive. Elle fonctionne aussi pour un article enregistré en brouillon.</p><div className="agenda-response-actions"><button type="button" disabled={busy} onClick={()=>setArticleToDelete(null)}>Annuler</button><button type="button" className="agenda-delete-action" disabled={busy} onClick={()=>void confirmDeleteArticle()}><Trash2 size={15}/>{busy?"Suppression…":"Confirmer la suppression"}</button></div></section></div>}
+
   </section>;
 }
